@@ -1,102 +1,30 @@
 import { useState, useEffect } from "react";
-import LudoBoard from "./LudoBoard";
+import LudoBoard, { COLORS } from "./LudoBoard";
 import styles from "./Ludo.module.css";
 
-// Player colors and starting positions
-const COLORS = ["red", "green", "yellow", "blue"];
-
-// Safe positions on the board (star positions safe for all players)
-const SAFE_POSITIONS = [8, 21, 34, 47]; // Star positions on the main path
+// Safe positions on the board (star positions)
+const SAFE_POSITIONS = [0, 8, 13, 21, 26, 34, 39, 47];
 
 // Starting positions for each color on the main 52-position circular path
 const START_POSITIONS = {
-  red: 1,      // Red's starting position (exits at position 0)
-  green: 14,   // Green's starting position (exits at position 13)
-  yellow: 27,  // Yellow's starting position (exits at position 26)
-  blue: 40     // Blue's starting position (exits at position 39)
+  blue: 0,
+  red: 13,
+  yellow: 39,
+  green: 26
 };
 
-// Home stretch entry positions on the main path
+// Home stretch entry positions (one position before entering home stretch)
 const HOME_ENTRY = {
-  red: 50,     // Red enters home stretch from position 50
-  green: 11,   // Green enters home stretch from position 11
-  yellow: 24,  // Yellow enters home stretch from position 24
-  blue: 37     // Blue enters home stretch from position 37
+  blue: 51,   // Blue enters home stretch after position 51
+  red: 12,    // Red enters home stretch after position 12
+  yellow: 38, // Yellow enters home stretch after position 38
+  green: 25   // Green enters home stretch after position 25
 };
 
-// Total positions: 52 (circular) + 5 (home stretch) per player
+// Total positions: 52 (circular) + 6 (home stretch) per player
 const MAIN_PATH_LENGTH = 52;
-const HOME_STRETCH_LENGTH = 5;
-const WINNING_POSITION = 57; // Position when token reaches the center
-
-// Simple Alert Component
-function SimpleAlert({ message, onClose }) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)',
-      color: 'white',
-      padding: '1rem 2rem',
-      borderRadius: '12px',
-      boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-      zIndex: 9999,
-      animation: 'fadeSlideIn 0.3s ease'
-    }}>
-      {message}
-    </div>
-  );
-}
-
-// Simple Button Component
-function GameButton({ children, onClick, variant = 'primary', size = 'medium', disabled = false, style = {} }) {
-  const baseStyles = {
-    padding: size === 'large' ? '1rem 2.5rem' : size === 'small' ? '0.5rem 1rem' : '0.75rem 1.5rem',
-    fontSize: size === 'large' ? '1.2rem' : size === 'small' ? '0.9rem' : '1rem',
-    fontWeight: '700',
-    borderRadius: '12px',
-    border: 'none',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'all 0.3s ease',
-    opacity: disabled ? 0.6 : 1,
-    ...style
-  };
-
-  const variantStyles = {
-    primary: {
-      background: 'linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%)',
-      color: 'white',
-      boxShadow: '0 4px 20px rgba(109, 40, 217, 0.4)'
-    },
-    secondary: {
-      background: 'rgba(255,255,255,0.1)',
-      color: '#E2E8F0',
-      border: '2px solid rgba(139, 92, 246, 0.4)'
-    },
-    success: {
-      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-      color: 'white',
-      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.4)'
-    }
-  };
-
-  return (
-    <button 
-      onClick={onClick} 
-      disabled={disabled}
-      style={{ ...baseStyles, ...variantStyles[variant] }}
-    >
-      {children}
-    </button>
-  );
-}
+const HOME_STRETCH_LENGTH = 6;
+const WINNING_POSITION = 57; // Position when token reaches center
 
 function Ludo() {
   const [gameStarted, setGameStarted] = useState(false);
@@ -108,47 +36,36 @@ function Ludo() {
   const [tokens, setTokens] = useState({});
   const [winner, setWinner] = useState(null);
   const [alertMessage, setAlertMessage] = useState(null);
-  const [selectedToken, setSelectedToken] = useState(null);
   const [movableTokens, setMovableTokens] = useState([]);
-  const [showRules, setShowRules] = useState(false);
 
-  const gameRules = [
-    "Roll 6 to move a token out of home",
-    "Move tokens clockwise around the board",
-    "Land on opponent's token to send them home (unless on safe spot)",
-    "Safe spots (star positions) protect your tokens",
-    "Roll 6 to get an extra turn",
-    "First player to get all 4 tokens home wins!"
-  ];
+  // Get active colors based on number of players
+  const getActiveColors = () => {
+    // 2 players: Blue vs Green (opposite corners)
+    // 3 players: Blue, Red, Green
+    // 4 players: All
+    if (numPlayers === 2) return ["blue", "green"];
+    if (numPlayers === 3) return ["blue", "red", "green"];
+    return ["blue", "red", "yellow", "green"];
+  };
 
   // Initialize tokens for each player
   useEffect(() => {
     if (gameStarted) {
+      const activeColors = getActiveColors();
       const initialTokens = {};
-      for (let i = 0; i < numPlayers; i++) {
-        const color = COLORS[i];
+      
+      activeColors.forEach(color => {
         initialTokens[color] = [
-          { id: 0, position: -1, isHome: true, isSafe: false },
-          { id: 1, position: -1, isHome: true, isSafe: false },
-          { id: 2, position: -1, isHome: true, isSafe: false },
-          { id: 3, position: -1, isHome: true, isSafe: false },
+          { id: 0, position: -1, isHome: true, isSafe: false, isFinished: false },
+          { id: 1, position: -1, isHome: true, isSafe: false, isFinished: false },
+          { id: 2, position: -1, isHome: true, isSafe: false, isFinished: false },
+          { id: 3, position: -1, isHome: true, isSafe: false, isFinished: false },
         ];
-      }
+      });
+      
       setTokens(initialTokens);
     }
   }, [gameStarted, numPlayers]);
-
-  function resetGameState() {
-    setNumPlayers(2);
-    setPlayerNames(["", ""]);
-    setCurrentPlayer(0);
-    setDiceValue(null);
-    setCanRoll(true);
-    setTokens({});
-    setWinner(null);
-    setSelectedToken(null);
-    setMovableTokens([]);
-  }
 
   function handlePlayerCountChange(count) {
     setNumPlayers(count);
@@ -165,13 +82,15 @@ function Ludo() {
   }
 
   function startGame() {
-    const validNames = playerNames.filter(name => name.trim() !== "");
-    if (validNames.length < numPlayers) {
-      setAlertMessage("Please enter all player names!");
-      return;
-    }
+    const validNames = playerNames.map((name, i) => 
+      name.trim() || `Player ${i + 1}`
+    );
     setPlayerNames(validNames);
     setGameStarted(true);
+    setCurrentPlayer(0);
+    setWinner(null);
+    setDiceValue(null);
+    setCanRoll(true);
   }
 
   function rollDice() {
@@ -181,16 +100,29 @@ function Ludo() {
     setDiceValue(roll);
     setCanRoll(false);
 
-    const currentColor = COLORS[currentPlayer];
+    const activeColors = getActiveColors();
+    const currentColor = activeColors[currentPlayer];
     const playerTokens = tokens[currentColor];
+    
+    if (!playerTokens) {
+      nextTurn(false);
+      return;
+    }
+
     const movable = [];
 
     playerTokens.forEach((token, idx) => {
+      if (token.isFinished) return; // Skip finished tokens
+      
       if (token.isHome && roll === 6) {
+        // Can move out of home with a 6
         movable.push(idx);
-      } else if (!token.isHome && token.position < WINNING_POSITION) {
-        const newPos = token.position + roll;
-        if (newPos <= WINNING_POSITION) {
+      } else if (!token.isHome && !token.isFinished) {
+        // Calculate if move is valid
+        const currentPos = token.position;
+        const stepsToWin = WINNING_POSITION - currentPos;
+        
+        if (roll <= stepsToWin) {
           movable.push(idx);
         }
       }
@@ -199,10 +131,12 @@ function Ludo() {
     setMovableTokens(movable);
 
     if (movable.length === 0) {
+      // No valid moves, pass turn after delay
       setTimeout(() => {
         nextTurn(false);
       }, 1500);
     } else if (movable.length === 1) {
+      // Auto-move single movable token
       setTimeout(() => {
         moveToken(movable[0], roll);
       }, 500);
@@ -210,150 +144,200 @@ function Ludo() {
   }
 
   function moveToken(tokenIndex, steps = diceValue) {
-    const currentColor = COLORS[currentPlayer];
-    const newTokens = { ...tokens };
-    const token = { ...newTokens[currentColor][tokenIndex] };
+    const activeColors = getActiveColors();
+    const currentColor = activeColors[currentPlayer];
+    const newTokens = JSON.parse(JSON.stringify(tokens)); // Deep clone
+    const token = newTokens[currentColor][tokenIndex];
+    
+    let capturedOpponent = false;
 
     if (token.isHome && steps === 6) {
+      // Move out of home to start position
       token.isHome = false;
-      token.position = START_POSITIONS[currentColor];
-      token.isSafe = true;
+      token.position = 1; // First position on the path (relative to color)
+      token.isSafe = true; // Start position is always safe
+      
+      // Check for capture at start position
+      const absoluteStart = START_POSITIONS[currentColor];
+      capturedOpponent = checkAndCapture(newTokens, currentColor, absoluteStart);
+      
     } else if (!token.isHome) {
       const newPosition = token.position + steps;
       
-      if (newPosition <= WINNING_POSITION) {
+      if (newPosition >= WINNING_POSITION) {
+        // Token finished!
+        token.position = WINNING_POSITION;
+        token.isFinished = true;
+        token.isSafe = true;
+      } else if (newPosition > MAIN_PATH_LENGTH) {
+        // In home stretch (positions 53-57)
         token.position = newPosition;
-        token.isSafe = SAFE_POSITIONS.includes(token.position % MAIN_PATH_LENGTH);
-
-        if (!token.isSafe && newPosition < MAIN_PATH_LENGTH) {
-          Object.keys(newTokens).forEach(color => {
-            if (color !== currentColor) {
-              newTokens[color] = newTokens[color].map(t => {
-                if (!t.isHome && t.position === token.position && !t.isSafe) {
-                  return { ...t, position: -1, isHome: true, isSafe: false };
-                }
-                return t;
-              });
-            }
-          });
+        token.isSafe = true; // Home stretch is always safe
+      } else {
+        // Normal move on main path
+        token.position = newPosition;
+        
+        // Calculate absolute position on the board
+        const startPos = START_POSITIONS[currentColor];
+        const absolutePos = (startPos + newPosition - 1) % MAIN_PATH_LENGTH;
+        
+        // Check if on safe spot
+        token.isSafe = SAFE_POSITIONS.includes(absolutePos);
+        
+        // Check for capture
+        if (!token.isSafe) {
+          capturedOpponent = checkAndCapture(newTokens, currentColor, absolutePos);
         }
       }
     }
 
     newTokens[currentColor][tokenIndex] = token;
     setTokens(newTokens);
-    setSelectedToken(null);
     setMovableTokens([]);
 
-    const allTokensHome = newTokens[currentColor].every(t => t.position === WINNING_POSITION);
-    if (allTokensHome) {
-      const winnerName = playerNames[currentPlayer];
-      setWinner(winnerName);
+    // Check for winner
+    const allFinished = newTokens[currentColor].every(t => t.isFinished);
+    if (allFinished) {
+      setWinner(playerNames[currentPlayer]);
       return;
     }
 
-    nextTurn(steps === 6);
+    // Extra turn for rolling 6 or capturing
+    const extraTurn = steps === 6 || capturedOpponent;
+    nextTurn(!extraTurn);
   }
 
-  function nextTurn(extraTurn) {
-    if (!extraTurn) {
-      const nextPlayerIndex = (currentPlayer + 1) % numPlayers;
+  function checkAndCapture(tokens, currentColor, absolutePosition) {
+    let captured = false;
+    
+    Object.keys(tokens).forEach(color => {
+      if (color === currentColor) return;
+      
+      tokens[color].forEach((token, idx) => {
+        if (token.isHome || token.isFinished || token.isSafe) return;
+        
+        // Calculate absolute position for this token
+        const tokenStartPos = START_POSITIONS[color];
+        const tokenAbsolutePos = (tokenStartPos + token.position - 1) % MAIN_PATH_LENGTH;
+        
+        if (tokenAbsolutePos === absolutePosition) {
+          // Capture! Send back to home
+          tokens[color][idx] = {
+            ...token,
+            position: -1,
+            isHome: true,
+            isSafe: false
+          };
+          captured = true;
+        }
+      });
+    });
+    
+    return captured;
+  }
+
+  function nextTurn(skip) {
+    if (!skip) {
+      const activeColors = getActiveColors();
+      let nextPlayerIndex = (currentPlayer + 1) % activeColors.length;
       setCurrentPlayer(nextPlayerIndex);
     }
     setDiceValue(null);
     setCanRoll(true);
-    setSelectedToken(null);
     setMovableTokens([]);
   }
 
   function resetGame() {
     setGameStarted(false);
-    resetGameState();
+    setNumPlayers(2);
+    setPlayerNames(["", ""]);
+    setCurrentPlayer(0);
+    setDiceValue(null);
+    setCanRoll(true);
+    setTokens({});
+    setWinner(null);
+    setMovableTokens([]);
   }
+
+  // Get color config for current display
+  const activeColors = getActiveColors();
+  const currentColor = activeColors[currentPlayer];
 
   // Setup Screen
   if (!gameStarted) {
     return (
       <div style={{ 
         minHeight: '100vh', 
-        background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #1E1B4B 100%)',
-        padding: '2rem'
+        background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%)',
+        padding: '2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
-        {alertMessage && (
-          <SimpleAlert 
-            message={alertMessage} 
-            onClose={() => setAlertMessage(null)} 
-          />
-        )}
-        
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: '#fff', 
-            fontSize: '2.5rem', 
-            marginBottom: '2rem',
-            textShadow: '0 4px 16px rgba(0,0,0,0.4)'
-          }}>
-            🎲 Ludo King
-          </h1>
+        <div className={styles.setupContainer}>
+          <h1 className={styles.setupTitle}>🎲 Ludo King</h1>
+          <p className={styles.setupSubtitle}>Classic board game for 2-4 players</p>
           
-          <div className={styles.setupContainer}>
-            <p className={styles.setupDescription}>
-              Classic Ludo game for 2-4 players. Roll the dice and race your tokens to the finish!
-            </p>
+          <div className={styles.rulesBox}>
+            <strong>Quick Rules: </strong>
+            <span>Roll 6 to start • Land on opponents to capture • Stars are safe • Get all 4 tokens home to win!</span>
+          </div>
 
-            {/* Rules */}
-            <div className={styles.rulesContentGame}>
-              <strong>Quick Rules:</strong> Roll 6 to start • Land on opponents to capture • Safe spots protect you • Get all tokens home to win!
+          <div className={styles.playerCountSection}>
+            <label className={styles.label}>Number of Players</label>
+            <div className={styles.playerCountButtons}>
+              {[2, 3, 4].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => handlePlayerCountChange(count)}
+                  className={`${styles.btn} ${numPlayers === count ? styles.btnActive : styles.btnSecondary}`}
+                >
+                  {count} Players
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Number of Players */}
-            <div className={styles.playerCountSection}>
-              <label className={styles.label}>Number of Players:</label>
-              <div className={styles.playerCountButtons}>
-                {[2, 3, 4].map((count) => (
-                  <GameButton
-                    key={count}
-                    onClick={() => handlePlayerCountChange(count)}
-                    variant={numPlayers === count ? 'primary' : 'secondary'}
-                  >
-                    {count} Players
-                  </GameButton>
-                ))}
-              </div>
-            </div>
-
-            {/* Player Names Input Section */}
-            <div className={styles.playersSection}>
-              <label className={styles.label}>Enter Player Names:</label>
-              <div className={styles.playersInputs}>
-                {Array.from({ length: numPlayers }).map((_, index) => (
+          <div className={styles.playersSection}>
+            <label className={styles.label}>Player Names</label>
+            <div className={styles.playersInputs}>
+              {Array.from({ length: numPlayers }).map((_, index) => {
+                const colors = getActiveColors();
+                const color = colors[index];
+                const colorMap = {
+                  blue: '#2196F3',
+                  red: '#F44336',
+                  yellow: '#FFEB3B',
+                  green: '#4CAF50'
+                };
+                
+                return (
                   <div key={index} className={styles.playerInputRow}>
                     <span 
                       className={styles.colorDot} 
-                      style={{ backgroundColor: COLORS[index] }}
+                      style={{ backgroundColor: colorMap[color] }}
                     />
                     <label className={styles.playerLabel}>
-                      Player {index + 1}:
+                      {color.charAt(0).toUpperCase() + color.slice(1)}:
                     </label>
                     <input
                       type="text"
                       value={playerNames[index] || ""}
                       onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                      placeholder={`Enter name for ${COLORS[index]} player`}
+                      placeholder={`Player ${index + 1}`}
                       className={styles.input}
-                      maxLength={15}
+                      maxLength={12}
                     />
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div style={{ textAlign: 'center' }}>
-              <GameButton onClick={startGame} variant="primary" size="large">
-                🎮 Start Game
-              </GameButton>
-            </div>
+          <div style={{ textAlign: 'center' }}>
+            <button onClick={startGame} className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLarge}`}>
+              🎮 Start Game
+            </button>
           </div>
         </div>
       </div>
@@ -361,116 +345,96 @@ function Ludo() {
   }
 
   // Game Screen
-  const currentColor = COLORS[currentPlayer];
-  const currentPlayerName = playerNames[currentPlayer];
-
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #1E1B4B 100%)',
-      padding: '1rem'
+      background: 'linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%)',
+      padding: '0.5rem'
     }}>
-      {alertMessage && (
-        <SimpleAlert 
-          message={alertMessage} 
-          onClose={() => setAlertMessage(null)} 
-        />
-      )}
-      
-      <div className={styles.gameContainer}>
-        {/* Game Info Bar */}
-        <div className={styles.gameInfo}>
-          <div className={styles.currentPlayerInfo}>
-            <span 
-              className={styles.playerDot} 
-              style={{ backgroundColor: currentColor }}
-            />
-            <span className={styles.currentPlayerName}>{currentPlayerName}'s Turn</span>
-          </div>
-
-          <div className={styles.gameInstructions}>
-            {canRoll ? (
-              <span className={styles.instructionText}>🎲 Click the dice in {currentPlayerName}'s home area to roll!</span>
-            ) : diceValue ? (
-              <span className={styles.instructionText}>You rolled a {diceValue}! {movableTokens.length > 0 ? '👆 Click a glowing token to move' : '⏳ No moves available'}</span>
-            ) : (
-              <span className={styles.instructionText}>⏳ Moving...</span>
-            )}
-          </div>
-
-          <GameButton
-            onClick={() => setShowRules(!showRules)}
-            variant="secondary"
-            size="small"
-          >
-            📖 Rules
-          </GameButton>
+      {/* Game Header */}
+      <div className={styles.gameHeader} style={{ maxWidth: '600px', margin: '0 auto 0.5rem' }}>
+        <div className={styles.turnIndicator}>
+          <div 
+            className={styles.turnDot}
+            style={{ 
+              backgroundColor: currentColor === 'blue' ? '#2196F3' : 
+                              currentColor === 'red' ? '#F44336' : 
+                              currentColor === 'yellow' ? '#FFEB3B' : '#4CAF50'
+            }}
+          />
+          <span className={styles.turnText}>{playerNames[currentPlayer]}'s Turn</span>
         </div>
-
-        {showRules && (
-          <div className={styles.rulesContentGame}>
-            <strong>Quick Rules:</strong> Roll 6 to start • Land on opponents to capture • Safe spots protect you • Get all tokens home to win!
-          </div>
-        )}
-
-        {/* Ludo Board with integrated dice */}
-        <LudoBoard
-          tokens={tokens}
-          numPlayers={numPlayers}
-          selectedToken={selectedToken}
-          movableTokens={movableTokens}
-          currentPlayer={currentPlayer}
-          diceValue={diceValue}
-          canRoll={canRoll}
-          onRollDice={rollDice}
-          onTokenClick={(tokenIndex) => {
-            if (movableTokens.includes(tokenIndex) && !winner) {
-              moveToken(tokenIndex);
-            }
-          }}
-        />
-
-        {/* Scoreboard */}
-        <div className={styles.scoreboard}>
-          <h3 className={styles.scoreboardTitle}>🏆 Players</h3>
-          <div className={styles.playersList}>
-            {playerNames.map((name, index) => {
-              const color = COLORS[index];
-              const tokensAtHome = tokens[color]?.filter(t => t.position === WINNING_POSITION).length || 0;
-              return (
-                <div 
-                  key={index} 
-                  className={`${styles.playerScore} ${
-                    index === currentPlayer ? styles.activePlayer : ""
-                  }`}
-                >
-                  <span 
-                    className={styles.scoreDot} 
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className={styles.playerScoreName}>{name}</span>
-                  <span className={styles.tokensHome}>{tokensAtHome}/4 🏠</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Winner Modal */}
-        {winner && (
-          <div className={styles.winnerOverlay}>
-            <div className={styles.winnerCard}>
-              <div className={styles.winnerText}>🎉 {winner} Wins! 🎉</div>
-              <div className={styles.winnerSubtext}>
-                Congratulations! All tokens made it home!
-              </div>
-              <GameButton onClick={resetGame} variant="success" size="large">
-                🔄 Play Again
-              </GameButton>
-            </div>
-          </div>
-        )}
+        <p className={styles.instruction}>
+          {canRoll 
+            ? '🎲 Click the dice to roll!' 
+            : diceValue 
+              ? `Rolled ${diceValue}! ${movableTokens.length > 0 ? 'Click a glowing token to move' : 'No moves available'}`
+              : 'Moving...'
+          }
+        </p>
       </div>
+
+      {/* Game Board */}
+      <LudoBoard
+        tokens={tokens}
+        numPlayers={numPlayers}
+        currentPlayer={currentPlayer}
+        movableTokens={movableTokens}
+        onTokenClick={(tokenIndex) => {
+          if (movableTokens.includes(tokenIndex) && !winner) {
+            moveToken(tokenIndex);
+          }
+        }}
+        diceValue={diceValue}
+        canRoll={canRoll}
+        onRollDice={rollDice}
+        playerNames={playerNames}
+        playerColors={activeColors}
+      />
+
+      {/* Scoreboard */}
+      <div className={styles.scoreboard} style={{ maxWidth: '600px', margin: '0.5rem auto 0' }}>
+        <h3 className={styles.scoreboardTitle}>🏆 Progress</h3>
+        <div className={styles.playersList}>
+          {activeColors.map((color, index) => {
+            const colorMap = {
+              blue: '#2196F3',
+              red: '#F44336',
+              yellow: '#FFEB3B',
+              green: '#4CAF50'
+            };
+            const finished = tokens[color]?.filter(t => t.isFinished).length || 0;
+            
+            return (
+              <div 
+                key={color} 
+                className={`${styles.playerScore} ${index === currentPlayer ? styles.activePlayer : ''}`}
+              >
+                <span className={styles.scoreDot} style={{ backgroundColor: colorMap[color] }} />
+                <span className={styles.playerScoreName}>{playerNames[index]}</span>
+                <span className={styles.tokensHome}>{finished}/4 🏠</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Winner Modal */}
+      {winner && (
+        <div className={styles.winnerOverlay}>
+          <div className={styles.winnerCard}>
+            <div className={styles.winnerText}>🎉 {winner} Wins! 🎉</div>
+            <p className={styles.winnerSubtext}>All tokens reached home!</p>
+            <button 
+              onClick={resetGame} 
+              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLarge}`}
+              style={{ background: '#1a1a1a', color: '#FFD700' }}
+            >
+              🔄 Play Again
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
