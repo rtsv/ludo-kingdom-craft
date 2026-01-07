@@ -1,0 +1,878 @@
+/* ============================================
+   LUDO KING STYLE - PREMIUM MOBILE GAME UI
+   ============================================ */
+
+/* CSS Variables for consistent theming */
+:root {
+  --ludo-board-wood: linear-gradient(135deg, #8B4513 0%, #A0522D 30%, #CD853F 50%, #A0522D 70%, #8B4513 100%);
+  --ludo-gold: #FFD700;
+  --ludo-gold-dark: #B8860B;
+  --ludo-purple: linear-gradient(135deg, #5B21B6 0%, #7C3AED 50%, #8B5CF6 100%);
+  --ludo-dark: #1E1E2E;
+  --ludo-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   SETUP CONTAINER
+   ============================================ */
+
+.setupContainer {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: linear-gradient(135deg, #2D2B55 0%, #1E1B4B 50%, #312E81 100%);
+  border-radius: 24px;
+  border: 3px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.setupContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.setupDescription {
+  text-align: center;
+  color: #E2E8F0;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  line-height: 1.7;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   RULES SECTION
+   ============================================ */
+
+.rulesSection {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.rulesContent {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 16px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  text-align: left;
+  backdrop-filter: blur(10px);
+}
+
+.rulesContent h4 {
+  color: #F1F5F9;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.rulesContent ul {
+  color: #CBD5E0;
+  line-height: 1.9;
+  margin-left: 1.5rem;
+}
+
+.rulesContent li {
+  margin-bottom: 0.6rem;
+}
+
+.rulesContentGame {
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #E2E8F0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   PLAYER SETUP INPUTS
+   ============================================ */
+
+.playerCountSection {
+  margin-bottom: 2rem;
+}
+
+.label {
+  display: block;
+  color: #F1F5F9;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 1.2rem;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.playerCountButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.playersSection {
+  margin-bottom: 2rem;
+}
+
+.playersInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.playerInputRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid rgba(139, 92, 246, 0.2);
+}
+
+.playerInputRow:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateX(6px);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+}
+
+.colorDot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.playerLabel {
+  color: #E2E8F0;
+  font-weight: 600;
+  min-width: 90px;
+  font-size: 1rem;
+}
+
+.input {
+  flex: 1;
+  padding: 0.9rem 1.3rem;
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #F1F5F9;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #8B5CF6;
+  background: rgba(15, 23, 42, 1);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+}
+
+.input::placeholder {
+  color: #64748B;
+}
+
+/* ============================================
+   GAME CONTAINER
+   ============================================ */
+
+.gameContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ============================================
+   GAME INFO BAR - LUDO KING STYLE
+   ============================================ */
+
+.gameInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.75rem;
+  background: linear-gradient(135deg, #4C1D95 0%, #6D28D9 50%, #7C3AED 100%);
+  border-radius: 18px;
+  border: 3px solid rgba(167, 139, 250, 0.4);
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  box-shadow: 
+    0 8px 32px rgba(109, 40, 217, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.gameInfo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.currentPlayerInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.7rem 1.4rem;
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.playerDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  animation: playerPulse 2s ease-in-out infinite;
+  box-shadow: 
+    0 0 20px currentColor, 
+    0 0 40px currentColor,
+    inset 0 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes playerPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  }
+  50% { 
+    transform: scale(1.15); 
+    box-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+  }
+}
+
+.currentPlayerName {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.3rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.gameInstructions {
+  flex: 1;
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.instructionText {
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-8px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* ============================================
+   LUDO BOARD WRAPPER - PREMIUM WOODEN FRAME
+   ============================================ */
+
+.ludoBoardWrapper {
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  background: 
+    linear-gradient(135deg, 
+      #6D4C41 0%, 
+      #8D6E63 15%, 
+      #A1887F 30%, 
+      #8D6E63 50%, 
+      #795548 70%, 
+      #6D4C41 85%, 
+      #5D4037 100%
+    );
+  border-radius: 20px;
+  padding: 1.25rem;
+  border: 8px solid;
+  border-color: #FFD54F #FFC107 #FFB300 #FFCA28;
+  box-shadow: 
+    0 0 0 2px #5D4037,
+    0 0 0 4px #FFD54F,
+    0 0 0 6px #5D4037,
+    0 15px 50px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.ludoBoardWrapper::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  right: -12px;
+  bottom: -12px;
+  background: linear-gradient(45deg, #FFD54F, #FFC107, #FFB300, #FFD54F);
+  border-radius: 24px;
+  z-index: -1;
+  opacity: 0.15;
+  filter: blur(15px);
+}
+
+.ludoBoardWrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Corner decorations */
+.boardCorner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #FFD54F, #FFC107);
+  border-radius: 50%;
+  box-shadow: 
+    inset 0 2px 4px rgba(255,255,255,0.4),
+    0 2px 8px rgba(0,0,0,0.3);
+  z-index: 10;
+}
+
+.cornerTopLeft { top: -8px; left: -8px; }
+.cornerTopRight { top: -8px; right: -8px; }
+.cornerBottomLeft { bottom: -8px; left: -8px; }
+.cornerBottomRight { bottom: -8px; right: -8px; }
+
+.ludoBoard {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+  background: #F5F0E6;
+}
+
+/* ============================================
+   DICE ANIMATIONS
+   ============================================ */
+
+.activeDice {
+  cursor: pointer;
+  animation: diceFloat 1.5s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+.activeDice:hover {
+  transform: scale(1.12);
+  filter: brightness(1.05) drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
+}
+
+@keyframes diceFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(2deg); }
+}
+
+.inactiveDice {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+
+.diceGlow {
+  animation: diceGlowPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes diceGlowPulse {
+  0%, 100% { 
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+.diceGlow2 {
+  animation: diceGlowPulse2 1.5s ease-in-out infinite;
+  animation-delay: 0.25s;
+}
+
+@keyframes diceGlowPulse2 {
+  0%, 100% { 
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.65;
+    transform: scale(1.06);
+  }
+}
+
+/* ============================================
+   TOKEN ANIMATIONS
+   ============================================ */
+
+.movableTokenGroup {
+  cursor: pointer;
+  animation: tokenGlow 1.2s ease-in-out infinite;
+  transition: all 0.15s ease;
+}
+
+.movableTokenGroup:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+@keyframes tokenGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  50% { 
+    filter: drop-shadow(0 0 10px currentColor) brightness(1.1);
+  }
+}
+
+.pulseRing {
+  animation: pulseRingAnim 1.8s ease-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pulseRingAnim {
+  0% { 
+    transform: scale(0.85); 
+    opacity: 0.9; 
+  }
+  100% { 
+    transform: scale(1.4); 
+    opacity: 0; 
+  }
+}
+
+.pulseRing2 {
+  animation: pulseRingAnim2 1.8s ease-out infinite;
+  animation-delay: 0.5s;
+  transform-origin: center;
+}
+
+@keyframes pulseRingAnim2 {
+  0% { 
+    transform: scale(0.85); 
+    opacity: 0.6; 
+  }
+  100% { 
+    transform: scale(1.6); 
+    opacity: 0; 
+  }
+}
+
+/* ============================================
+   SCOREBOARD - LUDO KING STYLE
+   ============================================ */
+
+.scoreboard {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.75rem;
+  background: linear-gradient(135deg, #2D2B55 0%, #1E1B4B 50%, #312E81 100%);
+  border-radius: 20px;
+  border: 3px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.scoreboardTitle {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 1.4rem;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  background: linear-gradient(180deg, #fff 0%, #E2E8F0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.playersList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.playerScore {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.4rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 16px;
+  border: 3px solid transparent;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.playerScore:hover {
+  background: rgba(15, 23, 42, 0.8);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
+.activePlayer {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border-color: rgba(167, 139, 250, 0.7);
+  box-shadow: 
+    0 0 30px rgba(139, 92, 246, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: scale(1.03);
+}
+
+.activePlayer:hover {
+  transform: scale(1.03) translateY(-3px);
+}
+
+.scoreDot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+}
+
+.playerScoreName {
+  color: #F1F5F9;
+  font-weight: 700;
+  flex: 1;
+  font-size: 1.1rem;
+  letter-spacing: 0.3px;
+}
+
+.tokensHome {
+  color: #FBBF24;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: rgba(251, 191, 36, 0.15);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+}
+
+/* ============================================
+   WINNER OVERLAY - CELEBRATION STYLE
+   ============================================ */
+
+.winnerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: overlayFadeIn 0.4s ease;
+  backdrop-filter: blur(12px);
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.winnerCard {
+  background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 30%, #8B5CF6 50%, #7C3AED 70%, #6D28D9 100%);
+  padding: 3.5rem 3rem;
+  border-radius: 32px;
+  text-align: center;
+  max-width: 550px;
+  box-shadow: 
+    0 0 0 4px rgba(167, 139, 250, 0.4),
+    0 0 0 8px rgba(139, 92, 246, 0.2),
+    0 25px 80px rgba(0, 0, 0, 0.6);
+  animation: winnerCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.winnerCard::before {
+  content: '🎊';
+  position: absolute;
+  font-size: 9rem;
+  opacity: 0.06;
+  top: -2rem;
+  left: -2rem;
+  animation: floatRotate 6s linear infinite;
+}
+
+.winnerCard::after {
+  content: '🎉';
+  position: absolute;
+  font-size: 9rem;
+  opacity: 0.06;
+  bottom: -2rem;
+  right: -2rem;
+  animation: floatRotate 6s linear infinite reverse;
+}
+
+@keyframes floatRotate {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes winnerCardIn {
+  from { 
+    transform: scale(0.5) rotate(-10deg); 
+    opacity: 0; 
+  }
+  to { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1; 
+  }
+}
+
+.winnerText {
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 1.4rem;
+  text-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(255, 255, 255, 0.3);
+  animation: winnerTextPop 0.8s ease 0.3s both;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes winnerTextPop {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.winnerSubtext {
+  font-size: 1.35rem;
+  color: #F1F5F9;
+  margin-bottom: 2.5rem;
+  opacity: 0.95;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .setupContainer {
+    padding: 1.5rem;
+    margin: 0.5rem;
+    border-radius: 20px;
+  }
+
+  .playerCountButtons {
+    flex-direction: column;
+  }
+
+  .gameInfo {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.15rem;
+    border-radius: 16px;
+  }
+
+  .currentPlayerInfo {
+    padding: 0.6rem 1.2rem;
+  }
+
+  .currentPlayerName {
+    font-size: 1.15rem;
+  }
+
+  .gameInstructions {
+    padding: 0.5rem;
+  }
+
+  .instructionText {
+    font-size: 0.95rem;
+  }
+
+  .ludoBoardWrapper {
+    padding: 0.9rem;
+    margin: 0 0.5rem 1.5rem;
+    border-width: 6px;
+    border-radius: 16px;
+  }
+
+  .boardCorner {
+    width: 18px;
+    height: 18px;
+  }
+
+  .scoreboard {
+    padding: 1.4rem;
+    margin: 0 0.5rem;
+    border-radius: 16px;
+  }
+
+  .playersList {
+    grid-template-columns: 1fr;
+  }
+
+  .winnerCard {
+    margin: 1rem;
+    padding: 2.5rem 2rem;
+    border-radius: 24px;
+  }
+
+  .winnerText {
+    font-size: 2.4rem;
+  }
+
+  .winnerSubtext {
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .playerInputRow {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding: 0.75rem;
+  }
+
+  .input {
+    width: 100%;
+    min-width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .colorDot {
+    width: 30px;
+    height: 30px;
+  }
+
+  .playerLabel {
+    min-width: 75px;
+    font-size: 0.95rem;
+  }
+
+  .ludoBoardWrapper {
+    padding: 0.6rem;
+    border-width: 5px;
+  }
+
+  .boardCorner {
+    width: 14px;
+    height: 14px;
+  }
+
+  .gameInstructions {
+    width: 100%;
+    padding: 0.75rem 0;
+  }
+
+  .instructionText {
+    font-size: 0.88rem;
+  }
+
+  .winnerText {
+    font-size: 1.9rem;
+  }
+
+  .winnerSubtext {
+    font-size: 1rem;
+  }
+
+  .scoreboardTitle {
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+  }
+
+  .playerScoreName {
+    font-size: 1rem;
+  }
+
+  .tokensHome {
+    font-size: 0.95rem;
+    padding: 0.3rem 0.6rem;
+  }
+}
+
+/* ============================================
+   HIGH DPI SCREENS
+   ============================================ */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .ludoBoard {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* ============================================
+   ADDITIONAL POLISH
+   ============================================ */
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(139, 92, 246, 0.4);
+  color: #fff;
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  outline: 2px solid #8B5CF6;
+  outline-offset: 2px;
+}
