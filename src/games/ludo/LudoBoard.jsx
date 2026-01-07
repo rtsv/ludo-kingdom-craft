@@ -107,13 +107,16 @@ const MAIN_PATH = (() => {
   return path;
 })();
 
-// Home bases - 4 token spots per player
+// Home bases - 4 token spots per player (larger circles)
 const HOME_BASES = {
-  blue: [g2p(1.5, 1.5), g2p(4, 1.5), g2p(1.5, 4), g2p(4, 4)],
-  red: [g2p(10, 1.5), g2p(12.5, 1.5), g2p(10, 4), g2p(12.5, 4)],
-  yellow: [g2p(1.5, 10), g2p(4, 10), g2p(1.5, 12.5), g2p(4, 12.5)],
-  green: [g2p(10, 10), g2p(12.5, 10), g2p(10, 12.5), g2p(12.5, 12.5)]
+  blue: [g2p(1.3, 1.3), g2p(3.7, 1.3), g2p(1.3, 3.7), g2p(3.7, 3.7)],
+  red: [g2p(10.3, 1.3), g2p(12.7, 1.3), g2p(10.3, 3.7), g2p(12.7, 3.7)],
+  yellow: [g2p(1.3, 10.3), g2p(3.7, 10.3), g2p(1.3, 12.7), g2p(3.7, 12.7)],
+  green: [g2p(10.3, 10.3), g2p(12.7, 10.3), g2p(10.3, 12.7), g2p(12.7, 12.7)]
 };
+
+// Home base circle radius
+const HOME_CIRCLE_RADIUS = CELL_SIZE * 0.55;
 
 // Starting positions on main path for each color
 const START_POS = { blue: 0, red: 13, green: 26, yellow: 39 };
@@ -129,46 +132,51 @@ const HOME_STRETCH = {
 // Safe spots (star positions) - indices on main path
 const SAFE_SPOTS = [0, 8, 13, 21, 26, 34, 39, 47];
 
-// Token component - Location pin/marker shape
+// Token component - Location pin/marker shape with smooth movement
 function Token({ x, y, color, isMovable, onClick, tokenId }) {
   const config = COLOR_CONFIG[color];
-  const cx = x + CELL_SIZE / 2;
-  const cy = y + CELL_SIZE / 2;
   
-  // Pin dimensions
-  const pinWidth = CELL_SIZE * 0.7;
-  const pinHeight = CELL_SIZE * 0.9;
+  // Pin dimensions (relative, will be positioned via transform)
+  const pinWidth = CELL_SIZE * 0.75;
+  const pinHeight = CELL_SIZE * 0.95;
   const headRadius = pinWidth * 0.45;
   
-  // Pin path: location marker shape
+  // Center offset
+  const centerX = CELL_SIZE / 2;
+  const centerY = CELL_SIZE / 2;
+  
+  // Pin path centered at origin
   const pinPath = `
-    M ${cx} ${cy + pinHeight * 0.35}
-    C ${cx - pinWidth * 0.15} ${cy + pinHeight * 0.1}
-      ${cx - headRadius} ${cy - pinHeight * 0.15}
-      ${cx - headRadius} ${cy - pinHeight * 0.25}
-    A ${headRadius} ${headRadius} 0 1 1 ${cx + headRadius} ${cy - pinHeight * 0.25}
-    C ${cx + headRadius} ${cy - pinHeight * 0.15}
-      ${cx + pinWidth * 0.15} ${cy + pinHeight * 0.1}
-      ${cx} ${cy + pinHeight * 0.35}
+    M 0 ${pinHeight * 0.35}
+    C ${-pinWidth * 0.15} ${pinHeight * 0.1}
+      ${-headRadius} ${-pinHeight * 0.15}
+      ${-headRadius} ${-pinHeight * 0.25}
+    A ${headRadius} ${headRadius} 0 1 1 ${headRadius} ${-pinHeight * 0.25}
+    C ${headRadius} ${-pinHeight * 0.15}
+      ${pinWidth * 0.15} ${pinHeight * 0.1}
+      0 ${pinHeight * 0.35}
     Z
   `;
   
   return (
     <g 
-      className={isMovable ? styles.movableToken : ''} 
+      className={`${styles.tokenWrapper} ${isMovable ? styles.movableToken : ''}`}
       onClick={isMovable ? onClick : undefined}
-      style={{ cursor: isMovable ? 'pointer' : 'default' }}
+      style={{ 
+        cursor: isMovable ? 'pointer' : 'default',
+        transform: `translate(${x + centerX}px, ${y + centerY}px)`,
+      }}
     >
       {/* Movable glow effect */}
       {isMovable && (
         <>
-          <circle cx={cx} cy={cy - pinHeight * 0.1} r={headRadius + 6} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
-          <circle cx={cx} cy={cy - pinHeight * 0.1} r={headRadius + 10} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
+          <circle cx={0} cy={-pinHeight * 0.1} r={headRadius + 6} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
+          <circle cx={0} cy={-pinHeight * 0.1} r={headRadius + 10} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
         </>
       )}
       
       {/* Shadow */}
-      <ellipse cx={cx + 2} cy={cy + pinHeight * 0.4} rx={pinWidth * 0.35} ry={pinWidth * 0.12} fill="rgba(0,0,0,0.4)" />
+      <ellipse cx={2} cy={pinHeight * 0.4} rx={pinWidth * 0.35} ry={pinWidth * 0.12} fill="rgba(0,0,0,0.4)" />
       
       {/* Pin body - dark outline */}
       <path d={pinPath} fill={config.dark} transform="translate(1, 1)" />
@@ -180,13 +188,13 @@ function Token({ x, y, color, isMovable, onClick, tokenId }) {
       <path d={pinPath} fill="url(#tokenShine)" />
       
       {/* Inner circle (white ring inside pin head) */}
-      <circle cx={cx} cy={cy - pinHeight * 0.25} r={headRadius * 0.55} fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.85" />
+      <circle cx={0} cy={-pinHeight * 0.25} r={headRadius * 0.55} fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.85" />
       
       {/* Inner dot */}
-      <circle cx={cx} cy={cy - pinHeight * 0.25} r={headRadius * 0.25} fill="#fff" opacity="0.9" />
+      <circle cx={0} cy={-pinHeight * 0.25} r={headRadius * 0.25} fill="#fff" opacity="0.9" />
       
       {/* Highlight on top */}
-      <ellipse cx={cx - headRadius * 0.25} cy={cy - pinHeight * 0.35} rx={headRadius * 0.2} ry={headRadius * 0.12} fill="#fff" opacity="0.6" />
+      <ellipse cx={-headRadius * 0.25} cy={-pinHeight * 0.35} rx={headRadius * 0.2} ry={headRadius * 0.12} fill="#fff" opacity="0.6" />
     </g>
   );
 }
@@ -415,8 +423,10 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.blue.map((pos, i) => (
             <g key={`blue-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
-                fill={COLOR_CONFIG.blue.main} stroke={COLOR_CONFIG.blue.dark} strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
+                fill={COLOR_CONFIG.blue.main} stroke={COLOR_CONFIG.blue.dark} strokeWidth="2.5" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
+                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
             </g>
           ))}
           
@@ -427,8 +437,10 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.red.map((pos, i) => (
             <g key={`red-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
-                fill={COLOR_CONFIG.red.main} stroke={COLOR_CONFIG.red.dark} strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
+                fill={COLOR_CONFIG.red.main} stroke={COLOR_CONFIG.red.dark} strokeWidth="2.5" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
+                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
             </g>
           ))}
           
@@ -439,8 +451,10 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.yellow.map((pos, i) => (
             <g key={`yellow-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
-                fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
+                fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2.5" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
+                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
             </g>
           ))}
           
@@ -451,8 +465,10 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.green.map((pos, i) => (
             <g key={`green-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
-                fill={COLOR_CONFIG.green.main} stroke={COLOR_CONFIG.green.dark} strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
+                fill={COLOR_CONFIG.green.main} stroke={COLOR_CONFIG.green.dark} strokeWidth="2.5" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
+                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
             </g>
           ))}
 
