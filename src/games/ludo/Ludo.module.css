@@ -1,73 +1,77 @@
 /* ============================================
-   LUDO KING EXACT UI STYLES
+   LUDO KING STYLE - COMPLETE CSS
    ============================================ */
 
-/* CSS Variables */
-:root {
-  --ludo-bg: linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%);
-  --panel-bg: rgba(0, 0, 0, 0.3);
-  --gold: #FFD700;
-  --gold-dark: #FFA000;
+/* === PAGE LAYOUTS === */
+
+.setupPage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ============================================
-   GAME BOARD LAYOUT
-   ============================================ */
+.gamePage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%);
+  padding: 0.5rem;
+}
 
-.gameBoard {
+/* === GAME CONTAINER === */
+
+.gameContainer {
+  max-width: 500px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  max-width: 800px;
-  margin: 0 auto;
+  gap: 0.5rem;
 }
 
-/* Player Panels Container */
-.playerPanels {
+/* === PLAYER PANELS === */
+
+.topPanels,
+.bottomPanels {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  width: 100%;
-  max-width: 600px;
+  gap: 0.5rem;
 }
 
-/* Individual Player Panel */
 .playerPanel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.8rem;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
   border: 3px solid transparent;
   transition: all 0.3s ease;
-  min-height: 70px;
+  min-height: 60px;
 }
 
 .panelBlue {
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(21, 101, 192, 0.3));
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.35), rgba(21, 101, 192, 0.35));
   border-color: #2196F3;
 }
 
 .panelRed {
-  background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(198, 40, 40, 0.3));
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.35), rgba(198, 40, 40, 0.35));
   border-color: #F44336;
 }
 
 .panelYellow {
-  background: linear-gradient(135deg, rgba(255, 235, 59, 0.3), rgba(249, 168, 37, 0.3));
-  border-color: #FFEB3B;
+  background: linear-gradient(135deg, rgba(253, 216, 53, 0.35), rgba(249, 168, 37, 0.35));
+  border-color: #FDD835;
 }
 
 .panelGreen {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(46, 125, 50, 0.3));
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.35), rgba(46, 125, 50, 0.35));
   border-color: #4CAF50;
 }
 
 .panelActive {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.3);
   border-color: #FFD700 !important;
   transform: scale(1.02);
 }
@@ -75,228 +79,243 @@
 .panelInfo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .panelAvatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  border: 3px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .panelName {
   color: #fff;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* ============================================
-   DICE STYLES
-   ============================================ */
+/* === STATUS BAR === */
+
+.statusBar {
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+
+.turnIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.turnDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px currentColor; }
+  50% { transform: scale(1.15); box-shadow: 0 0 16px currentColor; }
+}
+
+.turnText {
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.statusText {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+}
+
+/* === DICE STYLES === */
 
 .dice {
-  width: 50px;
-  height: 50px;
-  background: linear-gradient(145deg, #FFFFFF, #E0E0E0);
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(145deg, #FFFFFF, #E8E8E8);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 
     0 4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 2px 4px rgba(255, 255, 255, 0.8);
+    inset 0 2px 4px rgba(255, 255, 255, 0.9);
   position: relative;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .diceActive {
   cursor: pointer;
-  animation: diceFloat 1.5s ease-in-out infinite;
+  animation: diceFloat 1.2s ease-in-out infinite;
   box-shadow: 
     0 4px 8px rgba(0, 0, 0, 0.3),
-    0 0 15px rgba(255, 215, 0, 0.6),
-    0 0 30px rgba(255, 215, 0, 0.3);
+    0 0 12px rgba(255, 215, 0, 0.7),
+    0 0 24px rgba(255, 215, 0, 0.4);
 }
 
 .diceActive:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .diceInactive {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: default;
 }
 
 .diceRolling {
-  animation: diceShake 0.1s ease infinite !important;
+  animation: diceShake 0.08s ease infinite !important;
 }
 
 @keyframes diceFloat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50% { transform: translateY(-3px); }
 }
 
 @keyframes diceShake {
-  0%, 100% { transform: rotate(0deg) scale(1.05); }
-  25% { transform: rotate(-10deg) scale(1.05); }
-  75% { transform: rotate(10deg) scale(1.05); }
+  0%, 100% { transform: rotate(0deg) scale(1.02); }
+  25% { transform: rotate(-12deg) scale(1.02); }
+  75% { transform: rotate(12deg) scale(1.02); }
 }
 
 .diceFace {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   position: relative;
 }
 
 .diceDot {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background: #1a1a1a;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-/* ============================================
-   BOARD WRAPPER
-   ============================================ */
+/* === BOARD WRAPPER === */
 
 .boardWrapper {
   background: 
     linear-gradient(135deg, 
-      #6D4C41 0%, 
-      #8D6E63 20%, 
-      #A1887F 40%, 
-      #8D6E63 60%, 
-      #795548 80%, 
+      #5D4037 0%, 
+      #795548 25%, 
+      #8D6E63 50%, 
+      #795548 75%, 
       #5D4037 100%
     );
-  padding: 12px;
-  border-radius: 16px;
-  border: 6px solid;
+  padding: 10px;
+  border-radius: 14px;
+  border: 5px solid;
   border-color: #FFD54F #FFC107 #FFB300 #FFCA28;
   box-shadow: 
-    0 0 0 3px #5D4037,
-    0 0 0 6px #FFD54F,
-    0 0 0 9px #5D4037,
-    0 15px 40px rgba(0, 0, 0, 0.5);
-  position: relative;
-  max-width: 600px;
-  width: 100%;
-}
-
-.boardWrapper::before {
-  content: '';
-  position: absolute;
-  top: -15px;
-  left: -15px;
-  right: -15px;
-  bottom: -15px;
-  background: linear-gradient(45deg, #FFD54F, #FFC107);
-  border-radius: 20px;
-  z-index: -1;
-  opacity: 0.2;
-  filter: blur(10px);
+    0 0 0 2px #4E342E,
+    0 0 0 5px #FFD54F,
+    0 0 0 7px #4E342E,
+    0 12px 30px rgba(0, 0, 0, 0.45);
 }
 
 .ludoBoard {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 8px;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  background: #F5F5DC;
 }
 
-/* ============================================
-   TOKEN ANIMATIONS
-   ============================================ */
+/* === TOKEN ANIMATIONS === */
 
 .movableToken {
   cursor: pointer;
-  animation: tokenPulse 1s ease-in-out infinite;
+  animation: tokenPulse 0.8s ease-in-out infinite;
 }
 
 .movableToken:hover {
-  filter: brightness(1.2);
+  filter: brightness(1.15);
 }
 
 @keyframes tokenPulse {
   0%, 100% { 
-    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8));
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.9));
   }
   50% { 
-    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 1)) brightness(1.1);
+    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 1)) brightness(1.1);
   }
 }
 
 .tokenGlow {
-  animation: glowPulse 1.5s ease-in-out infinite;
+  animation: glowExpand 1.2s ease-in-out infinite;
 }
 
-@keyframes glowPulse {
+.tokenGlow2 {
+  animation: glowExpand 1.2s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes glowExpand {
   0% { 
-    r: 15;
-    opacity: 0.8; 
+    r: 14;
+    opacity: 0.9; 
   }
   100% { 
-    r: 25;
+    r: 22;
     opacity: 0; 
   }
 }
 
-.tokenGlow2 {
-  animation: glowPulse 1.5s ease-in-out infinite;
-  animation-delay: 0.5s;
-}
-
-/* ============================================
-   SETUP CONTAINER
-   ============================================ */
+/* === SETUP CONTAINER === */
 
 .setupContainer {
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 100%;
+  padding: 1.75rem;
+  background: rgba(0, 0, 0, 0.35);
   border-radius: 20px;
-  border: 3px solid rgba(255, 215, 0, 0.3);
+  border: 3px solid rgba(255, 215, 0, 0.35);
   backdrop-filter: blur(10px);
 }
 
 .setupTitle {
   text-align: center;
   color: #FFD700;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
 }
 
 .setupSubtitle {
   text-align: center;
   color: #fff;
-  font-size: 1.1rem;
-  margin-bottom: 2rem;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
   opacity: 0.9;
 }
 
-/* Rules Box */
 .rulesBox {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 12px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -306,50 +325,48 @@
 
 .rulesBox span {
   color: #fff;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
-/* Player Count Section */
 .playerCountSection {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .label {
   display: block;
   color: #FFD700;
   font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
   text-align: center;
 }
 
 .playerCountButtons {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   justify-content: center;
 }
 
-/* Players Section */
 .playersSection {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .playersInputs {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .playerInputRow {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  gap: 0.6rem;
+  padding: 0.6rem;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 2px solid transparent;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .playerInputRow:hover {
@@ -358,94 +375,52 @@
 }
 
 .colorDot {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   flex-shrink: 0;
 }
 
 .playerLabel {
   color: #fff;
   font-weight: 600;
-  min-width: 80px;
+  min-width: 65px;
+  font-size: 0.95rem;
 }
 
 .input {
   flex: 1;
-  padding: 0.75rem 1rem;
+  padding: 0.6rem 0.9rem;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);
   color: #fff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
 }
 
 .input:focus {
   outline: none;
   border-color: #FFD700;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .input::placeholder {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* ============================================
-   GAME HEADER
-   ============================================ */
-
-.gameHeader {
+.startBtnWrapper {
   text-align: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  max-width: 600px;
-  width: 100%;
-}
-
-.turnIndicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.turnDot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  animation: dotPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes dotPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 10px currentColor; }
-  50% { transform: scale(1.15); box-shadow: 0 0 20px currentColor; }
-}
-
-.turnText {
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.instruction {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
   margin-top: 0.5rem;
 }
 
-/* ============================================
-   BUTTONS
-   ============================================ */
+/* === BUTTONS === */
 
 .btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.65rem 1.3rem;
+  font-size: 0.95rem;
   font-weight: 700;
   border-radius: 10px;
   border: none;
@@ -458,12 +433,12 @@
 .btnPrimary {
   background: linear-gradient(135deg, #FFD700, #FFA000);
   color: #1a1a1a;
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
 
 .btnPrimary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.5);
 }
 
 .btnSecondary {
@@ -477,13 +452,8 @@
 }
 
 .btnLarge {
-  padding: 1rem 2.5rem;
-  font-size: 1.2rem;
-}
-
-.btnSmall {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.9rem 2rem;
+  font-size: 1.1rem;
 }
 
 .btnActive {
@@ -491,9 +461,7 @@
   color: #1a1a1a;
 }
 
-/* ============================================
-   WINNER OVERLAY
-   ============================================ */
+/* === WINNER OVERLAY === */
 
 .winnerOverlay {
   position: fixed;
@@ -501,11 +469,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 100;
   animation: fadeIn 0.3s ease;
 }
 
@@ -515,116 +483,53 @@
 }
 
 .winnerCard {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA000 50%, #FFD700 100%);
-  padding: 3rem;
+  background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+  padding: 2.5rem;
   border-radius: 24px;
   text-align: center;
-  max-width: 400px;
-  margin: 1rem;
-  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+  border: 4px solid #FFD700;
+  box-shadow: 
+    0 0 40px rgba(255, 215, 0, 0.4),
+    0 0 80px rgba(255, 215, 0, 0.2);
+  animation: scaleIn 0.4s ease;
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.5); opacity: 0; }
+  from { transform: scale(0.8); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 
 .winnerText {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: #1a1a1a;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #FFD700;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
 .winnerSubtext {
-  font-size: 1.2rem;
-  color: #333;
-  margin-bottom: 2rem;
-}
-
-/* ============================================
-   SCOREBOARD
-   ============================================ */
-
-.scoreboard {
-  max-width: 600px;
-  width: 100%;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  margin-top: 1rem;
-}
-
-.scoreboardTitle {
-  color: #FFD700;
-  font-size: 1.25rem;
-  font-weight: 700;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.playersList {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.playerScore {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  border: 2px solid transparent;
-}
-
-.activePlayer {
-  border-color: #FFD700;
-  background: rgba(255, 215, 0, 0.15);
-}
-
-.scoreDot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-}
-
-.playerScoreName {
   color: #fff;
-  font-weight: 600;
-  flex: 1;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
 }
 
-.tokensHome {
-  color: #FFD700;
-  font-weight: 700;
-}
+/* === RESPONSIVE === */
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-@media (max-width: 640px) {
-  .gameBoard {
-    padding: 0.5rem;
-  }
-  
-  .playerPanels {
-    gap: 0.5rem;
+@media (max-width: 480px) {
+  .gameContainer {
+    padding: 0;
   }
   
   .playerPanel {
-    padding: 0.5rem 0.75rem;
-    min-height: 60px;
+    padding: 0.5rem 0.6rem;
+    min-height: 50px;
   }
   
   .panelAvatar {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
   }
   
   .panelName {
@@ -646,42 +551,28 @@
     height: 6px;
   }
   
+  .statusBar {
+    padding: 0.4rem;
+  }
+  
+  .turnText {
+    font-size: 0.95rem;
+  }
+  
+  .statusText {
+    font-size: 0.8rem;
+  }
+  
   .boardWrapper {
     padding: 8px;
     border-width: 4px;
   }
   
-  .setupContainer {
-    padding: 1.5rem;
-    margin: 0.5rem;
-  }
-  
   .setupTitle {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   
-  .playersList {
-    grid-template-columns: 1fr;
-  }
-  
-  .winnerText {
-    font-size: 2rem;
-  }
-  
-  .winnerCard {
-    padding: 2rem;
-  }
-}
-
-@media (max-width: 400px) {
-  .playerPanel {
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: center;
-  }
-  
-  .panelInfo {
-    flex-direction: column;
-    gap: 0.25rem;
+  .setupContainer {
+    padding: 1.25rem;
   }
 }
