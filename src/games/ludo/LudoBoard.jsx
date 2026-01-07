@@ -129,12 +129,29 @@ const HOME_STRETCH = {
 // Safe spots (star positions) - indices on main path
 const SAFE_SPOTS = [0, 8, 13, 21, 26, 34, 39, 47];
 
-// Token component
+// Token component - Location pin/marker shape
 function Token({ x, y, color, isMovable, onClick, tokenId }) {
   const config = COLOR_CONFIG[color];
-  const size = CELL_SIZE * 0.85;
   const cx = x + CELL_SIZE / 2;
   const cy = y + CELL_SIZE / 2;
+  
+  // Pin dimensions
+  const pinWidth = CELL_SIZE * 0.7;
+  const pinHeight = CELL_SIZE * 0.9;
+  const headRadius = pinWidth * 0.45;
+  
+  // Pin path: location marker shape
+  const pinPath = `
+    M ${cx} ${cy + pinHeight * 0.35}
+    C ${cx - pinWidth * 0.15} ${cy + pinHeight * 0.1}
+      ${cx - headRadius} ${cy - pinHeight * 0.15}
+      ${cx - headRadius} ${cy - pinHeight * 0.25}
+    A ${headRadius} ${headRadius} 0 1 1 ${cx + headRadius} ${cy - pinHeight * 0.25}
+    C ${cx + headRadius} ${cy - pinHeight * 0.15}
+      ${cx + pinWidth * 0.15} ${cy + pinHeight * 0.1}
+      ${cx} ${cy + pinHeight * 0.35}
+    Z
+  `;
   
   return (
     <g 
@@ -145,28 +162,31 @@ function Token({ x, y, color, isMovable, onClick, tokenId }) {
       {/* Movable glow effect */}
       {isMovable && (
         <>
-          <circle cx={cx} cy={cy} r={size * 0.55} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
-          <circle cx={cx} cy={cy} r={size * 0.65} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
+          <circle cx={cx} cy={cy - pinHeight * 0.1} r={headRadius + 6} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
+          <circle cx={cx} cy={cy - pinHeight * 0.1} r={headRadius + 10} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
         </>
       )}
       
       {/* Shadow */}
-      <ellipse cx={cx + 2} cy={cy + size * 0.3} rx={size * 0.32} ry={size * 0.12} fill="rgba(0,0,0,0.35)" />
+      <ellipse cx={cx + 2} cy={cy + pinHeight * 0.4} rx={pinWidth * 0.35} ry={pinWidth * 0.12} fill="rgba(0,0,0,0.4)" />
       
-      {/* Base ring */}
-      <ellipse cx={cx} cy={cy + size * 0.18} rx={size * 0.38} ry={size * 0.15} fill={config.dark} />
+      {/* Pin body - dark outline */}
+      <path d={pinPath} fill={config.dark} transform="translate(1, 1)" />
       
-      {/* Main body */}
-      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.38} fill={config.main} />
+      {/* Pin body - main color fill */}
+      <path d={pinPath} fill={config.main} stroke={config.dark} strokeWidth="2" />
       
-      {/* Gradient shine */}
-      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.38} fill="url(#tokenShine)" />
+      {/* Gradient overlay for 3D effect */}
+      <path d={pinPath} fill="url(#tokenShine)" />
       
-      {/* Inner white ring */}
-      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.22} fill="none" stroke="#fff" strokeWidth="2" opacity="0.75" />
+      {/* Inner circle (white ring inside pin head) */}
+      <circle cx={cx} cy={cy - pinHeight * 0.25} r={headRadius * 0.55} fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.85" />
       
-      {/* Top highlight */}
-      <ellipse cx={cx} cy={cy - size * 0.3} rx={size * 0.12} ry={size * 0.08} fill={config.light} opacity="0.8" />
+      {/* Inner dot */}
+      <circle cx={cx} cy={cy - pinHeight * 0.25} r={headRadius * 0.25} fill="#fff" opacity="0.9" />
+      
+      {/* Highlight on top */}
+      <ellipse cx={cx - headRadius * 0.25} cy={cy - pinHeight * 0.35} rx={headRadius * 0.2} ry={headRadius * 0.12} fill="#fff" opacity="0.6" />
     </g>
   );
 }
