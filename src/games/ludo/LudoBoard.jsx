@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./Ludo.module.css";
 
-// Ludo King Color Positions:
-// Blue = Top-Left, Red = Top-Right, Yellow = Bottom-Left, Green = Bottom-Right
-const COLORS = ["blue", "red", "yellow", "green"];
-
 // Board is 15x15 grid
 const CELL_SIZE = 40;
 const BOARD_SIZE = 15;
@@ -15,28 +11,28 @@ const COLOR_CONFIG = {
     main: '#2196F3',
     light: '#64B5F6',
     dark: '#1565C0',
-    homeArea: '#2196F3',
+    home: '#1976D2',
     stretch: '#BBDEFB'
   },
   red: {
     main: '#F44336',
     light: '#EF5350',
     dark: '#C62828',
-    homeArea: '#F44336',
+    home: '#D32F2F',
     stretch: '#FFCDD2'
   },
   yellow: {
-    main: '#FFEB3B',
-    light: '#FFF176',
+    main: '#FDD835',
+    light: '#FFEE58',
     dark: '#F9A825',
-    homeArea: '#FFEB3B',
+    home: '#FBC02D',
     stretch: '#FFF9C4'
   },
   green: {
     main: '#4CAF50',
     light: '#81C784',
     dark: '#2E7D32',
-    homeArea: '#4CAF50',
+    home: '#388E3C',
     stretch: '#C8E6C9'
   }
 };
@@ -44,60 +40,12 @@ const COLOR_CONFIG = {
 // Convert grid position to pixel coordinates
 const g2p = (x, y) => ({ x: x * CELL_SIZE, y: y * CELL_SIZE });
 
-// The main path - 52 cells going around the board clockwise
-// Starting from Blue's entry (position 0) at left column going down
-const createMainPath = () => {
-  const path = [];
-  
-  // From Blue entry going DOWN left column (positions 0-5)
-  for (let i = 6; i <= 11; i++) path.push(g2p(0, i)); // 0-5
-  
-  // Turn to go RIGHT along bottom-left (positions 6-11)
-  path.push(g2p(0, 12));
-  path.push(g2p(0, 13));
-  path.push(g2p(1, 14));
-  path.push(g2p(2, 14));
-  path.push(g2p(3, 14));
-  path.push(g2p(4, 14));
-  path.push(g2p(5, 14));
-  
-  // Yellow entry and path UP (positions 12-18)
-  path.push(g2p(6, 14));
-  for (let i = 13; i >= 8; i--) path.push(g2p(6, i));
-  
-  // Cross to center right column (positions 19-25)
-  for (let i = 8; i <= 14; i++) path.push(g2p(i, 6));
-  
-  // Green entry and path DOWN (positions 26-32)
-  path.push(g2p(14, 6));
-  for (let i = 7; i <= 12; i++) path.push(g2p(14, i));
-  
-  // Turn to go LEFT along bottom-right (positions 33-38)
-  path.push(g2p(14, 13));
-  path.push(g2p(14, 14));
-  path.push(g2p(13, 14));
-  path.push(g2p(12, 14));
-  path.push(g2p(11, 14));
-  path.push(g2p(10, 14));
-  path.push(g2p(9, 14));
-  
-  // Red entry and path UP (positions 39-45)
-  path.push(g2p(8, 14));
-  for (let i = 13; i >= 8; i--) path.push(g2p(8, i));
-  
-  // Cross to center top (positions 46-51)
-  for (let i = 6; i >= 0; i--) path.push(g2p(i, 8));
-  
-  return path;
-};
-
-// Corrected main path for standard Ludo board
+// Main path - 52 cells clockwise starting from Blue's entry
 const MAIN_PATH = (() => {
   const path = [];
   
-  // Blue's path starts from (1, 6) going up, then clockwise
-  // Position 0: Blue start
-  path.push(g2p(1, 6)); // 0 - Blue start
+  // Blue section: starts at (1,6), goes right, then up
+  path.push(g2p(1, 6)); // 0 - Blue start (safe)
   path.push(g2p(2, 6)); // 1
   path.push(g2p(3, 6)); // 2
   path.push(g2p(4, 6)); // 3
@@ -105,14 +53,14 @@ const MAIN_PATH = (() => {
   path.push(g2p(6, 5)); // 5
   path.push(g2p(6, 4)); // 6
   path.push(g2p(6, 3)); // 7
-  path.push(g2p(6, 2)); // 8 - Safe spot
+  path.push(g2p(6, 2)); // 8 - Safe spot (star)
   path.push(g2p(6, 1)); // 9
   path.push(g2p(6, 0)); // 10
   path.push(g2p(7, 0)); // 11
   path.push(g2p(8, 0)); // 12
   
-  // Red's section
-  path.push(g2p(8, 1)); // 13 - Red start
+  // Red section: starts at (8,1), goes down, then right
+  path.push(g2p(8, 1)); // 13 - Red start (safe)
   path.push(g2p(8, 2)); // 14
   path.push(g2p(8, 3)); // 15
   path.push(g2p(8, 4)); // 16
@@ -120,14 +68,14 @@ const MAIN_PATH = (() => {
   path.push(g2p(9, 6)); // 18
   path.push(g2p(10, 6)); // 19
   path.push(g2p(11, 6)); // 20
-  path.push(g2p(12, 6)); // 21 - Safe spot
+  path.push(g2p(12, 6)); // 21 - Safe spot (star)
   path.push(g2p(13, 6)); // 22
   path.push(g2p(14, 6)); // 23
   path.push(g2p(14, 7)); // 24
   path.push(g2p(14, 8)); // 25
   
-  // Green's section  
-  path.push(g2p(13, 8)); // 26 - Green start
+  // Green section: starts at (13,8), goes left, then down
+  path.push(g2p(13, 8)); // 26 - Green start (safe)
   path.push(g2p(12, 8)); // 27
   path.push(g2p(11, 8)); // 28
   path.push(g2p(10, 8)); // 29
@@ -135,14 +83,14 @@ const MAIN_PATH = (() => {
   path.push(g2p(8, 9)); // 31
   path.push(g2p(8, 10)); // 32
   path.push(g2p(8, 11)); // 33
-  path.push(g2p(8, 12)); // 34 - Safe spot
+  path.push(g2p(8, 12)); // 34 - Safe spot (star)
   path.push(g2p(8, 13)); // 35
   path.push(g2p(8, 14)); // 36
   path.push(g2p(7, 14)); // 37
   path.push(g2p(6, 14)); // 38
   
-  // Yellow's section
-  path.push(g2p(6, 13)); // 39 - Yellow start
+  // Yellow section: starts at (6,13), goes up, then left
+  path.push(g2p(6, 13)); // 39 - Yellow start (safe)
   path.push(g2p(6, 12)); // 40
   path.push(g2p(6, 11)); // 41
   path.push(g2p(6, 10)); // 42
@@ -150,16 +98,16 @@ const MAIN_PATH = (() => {
   path.push(g2p(5, 8)); // 44
   path.push(g2p(4, 8)); // 45
   path.push(g2p(3, 8)); // 46
-  path.push(g2p(2, 8)); // 47 - Safe spot
+  path.push(g2p(2, 8)); // 47 - Safe spot (star)
   path.push(g2p(1, 8)); // 48
   path.push(g2p(0, 8)); // 49
   path.push(g2p(0, 7)); // 50
-  path.push(g2p(0, 6)); // 51 - Back to before Blue start
+  path.push(g2p(0, 6)); // 51
   
   return path;
 })();
 
-// Home bases - 4 token spots per player (matching Ludo King positions)
+// Home bases - 4 token spots per player
 const HOME_BASES = {
   blue: [g2p(1.5, 1.5), g2p(4, 1.5), g2p(1.5, 4), g2p(4, 4)],
   red: [g2p(10, 1.5), g2p(12.5, 1.5), g2p(10, 4), g2p(12.5, 4)],
@@ -181,11 +129,8 @@ const HOME_STRETCH = {
 // Safe spots (star positions) - indices on main path
 const SAFE_SPOTS = [0, 8, 13, 21, 26, 34, 39, 47];
 
-// Start positions that are also safe
-const START_SAFE = [0, 13, 26, 39];
-
-// Token component - Ludo King style pin/pawn shape
-const Token = ({ x, y, color, isMovable, onClick, tokenId }) => {
+// Token component
+function Token({ x, y, color, isMovable, onClick, tokenId }) {
   const config = COLOR_CONFIG[color];
   const size = CELL_SIZE * 0.85;
   const cx = x + CELL_SIZE / 2;
@@ -200,46 +145,43 @@ const Token = ({ x, y, color, isMovable, onClick, tokenId }) => {
       {/* Movable glow effect */}
       {isMovable && (
         <>
-          <circle cx={cx} cy={cy} r={size * 0.6} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
-          <circle cx={cx} cy={cy} r={size * 0.7} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
+          <circle cx={cx} cy={cy} r={size * 0.55} fill="none" stroke="#FFD700" strokeWidth="3" className={styles.tokenGlow} />
+          <circle cx={cx} cy={cy} r={size * 0.65} fill="none" stroke="#FFD700" strokeWidth="2" opacity="0.5" className={styles.tokenGlow2} />
         </>
       )}
       
       {/* Shadow */}
-      <ellipse cx={cx + 2} cy={cy + size * 0.35} rx={size * 0.35} ry={size * 0.15} fill="rgba(0,0,0,0.3)" />
+      <ellipse cx={cx + 2} cy={cy + size * 0.3} rx={size * 0.32} ry={size * 0.12} fill="rgba(0,0,0,0.35)" />
       
-      {/* Base ring (darker) */}
-      <ellipse cx={cx} cy={cy + size * 0.2} rx={size * 0.4} ry={size * 0.18} fill={config.dark} />
-      <ellipse cx={cx} cy={cy + size * 0.15} rx={size * 0.35} ry={size * 0.15} fill={config.dark} />
+      {/* Base ring */}
+      <ellipse cx={cx} cy={cy + size * 0.18} rx={size * 0.38} ry={size * 0.15} fill={config.dark} />
       
-      {/* Main body (gradient effect) */}
-      <circle cx={cx} cy={cy - size * 0.05} r={size * 0.4} fill={config.main} />
+      {/* Main body */}
+      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.38} fill={config.main} />
+      
+      {/* Gradient shine */}
+      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.38} fill="url(#tokenShine)" />
+      
+      {/* Inner white ring */}
+      <circle cx={cx} cy={cy - size * 0.02} r={size * 0.22} fill="none" stroke="#fff" strokeWidth="2" opacity="0.75" />
       
       {/* Top highlight */}
-      <circle cx={cx} cy={cy - size * 0.05} r={size * 0.4} fill="url(#tokenShine)" />
-      
-      {/* Inner ring */}
-      <circle cx={cx} cy={cy - size * 0.05} r={size * 0.25} fill="none" stroke="#fff" strokeWidth="2" opacity="0.7" />
-      
-      {/* Top pin point */}
-      <ellipse cx={cx} cy={cy - size * 0.35} rx={size * 0.15} ry={size * 0.1} fill={config.light} />
+      <ellipse cx={cx} cy={cy - size * 0.3} rx={size * 0.12} ry={size * 0.08} fill={config.light} opacity="0.8" />
     </g>
   );
-};
+}
 
 // Dice component
-const Dice = ({ value, isActive, isRolling, onClick, playerColor }) => {
-  const size = 50;
-  const dotSize = 6;
-  const config = COLOR_CONFIG[playerColor] || { main: '#fff', dark: '#ccc' };
+function Dice({ value, isActive, isRolling, onClick, color }) {
+  const config = COLOR_CONFIG[color] || { main: '#666', dark: '#444' };
   
   const dotPositions = {
     1: [[0.5, 0.5]],
-    2: [[0.25, 0.25], [0.75, 0.75]],
-    3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]],
-    4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
-    5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]],
-    6: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.5], [0.75, 0.5], [0.25, 0.75], [0.75, 0.75]]
+    2: [[0.28, 0.28], [0.72, 0.72]],
+    3: [[0.28, 0.28], [0.5, 0.5], [0.72, 0.72]],
+    4: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]],
+    5: [[0.28, 0.28], [0.72, 0.28], [0.5, 0.5], [0.28, 0.72], [0.72, 0.72]],
+    6: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.5], [0.72, 0.5], [0.28, 0.72], [0.72, 0.72]]
   };
 
   const dots = dotPositions[value] || dotPositions[1];
@@ -248,10 +190,6 @@ const Dice = ({ value, isActive, isRolling, onClick, playerColor }) => {
     <div 
       className={`${styles.dice} ${isActive ? styles.diceActive : styles.diceInactive} ${isRolling ? styles.diceRolling : ''}`}
       onClick={isActive && !isRolling ? onClick : undefined}
-      style={{ 
-        '--dice-color': config.main,
-        '--dice-dark': config.dark
-      }}
     >
       <div className={styles.diceFace}>
         {dots.map((pos, i) => (
@@ -267,19 +205,19 @@ const Dice = ({ value, isActive, isRolling, onClick, playerColor }) => {
       </div>
     </div>
   );
-};
+}
 
 function LudoBoard({ 
   tokens, 
-  numPlayers, 
-  currentPlayer, 
+  activeColors,
+  currentPlayerIndex,
+  currentColor,
   movableTokens, 
   onTokenClick, 
   diceValue, 
   canRoll, 
   onRollDice,
-  playerNames,
-  playerColors 
+  playerNames
 }) {
   const [isRolling, setIsRolling] = useState(false);
   const [displayDice, setDisplayDice] = useState(1);
@@ -288,15 +226,18 @@ function LudoBoard({
     if (isRolling) {
       const interval = setInterval(() => {
         setDisplayDice(Math.floor(Math.random() * 6) + 1);
-      }, 100);
+      }, 80);
       
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         clearInterval(interval);
         setIsRolling(false);
         if (diceValue) setDisplayDice(diceValue);
-      }, 600);
+      }, 500);
       
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
     }
   }, [isRolling, diceValue]);
 
@@ -311,221 +252,193 @@ function LudoBoard({
       setIsRolling(true);
       setTimeout(() => {
         onRollDice();
-      }, 600);
+      }, 500);
     }
   };
 
-  // Calculate token position
+  // Calculate token position on board
   const getTokenPosition = (color, token) => {
     if (token.isHome || token.position === -1) {
       return HOME_BASES[color][token.id];
     }
     
-    if (token.position >= 57) {
-      // Won - at center
-      const offset = { blue: -8, red: 8, green: 8, yellow: -8 };
-      return { x: 7 * CELL_SIZE + (offset[color] || 0), y: 7 * CELL_SIZE + (offset[color] || 0) };
+    // Finished token - at center
+    if (token.isFinished || token.position >= 58) {
+      const offsets = { blue: [-10, -10], red: [10, -10], green: [10, 10], yellow: [-10, 10] };
+      const off = offsets[color] || [0, 0];
+      return { x: 7 * CELL_SIZE + off[0], y: 7 * CELL_SIZE + off[1] };
     }
     
-    // In home stretch (positions 52-56)
-    if (token.position >= 52 && token.position < 57) {
+    // In home stretch (positions 52-57)
+    if (token.position >= 52) {
       const idx = token.position - 52;
-      return HOME_STRETCH[color][idx];
+      if (idx < 6) {
+        return HOME_STRETCH[color][idx];
+      }
+      // Position 58+ means finished
+      const offsets = { blue: [-10, -10], red: [10, -10], green: [10, 10], yellow: [-10, 10] };
+      const off = offsets[color] || [0, 0];
+      return { x: 7 * CELL_SIZE + off[0], y: 7 * CELL_SIZE + off[1] };
     }
     
-    // On main path
+    // On main path - calculate absolute position
     const startPos = START_POS[color];
     const absolutePos = (startPos + token.position) % 52;
     return MAIN_PATH[absolutePos];
   };
 
   const boardPixels = BOARD_SIZE * CELL_SIZE;
-  const currentColor = playerColors ? playerColors[currentPlayer] : COLORS[currentPlayer];
+  const numPlayers = activeColors.length;
 
-  // Render a star for safe spots
-  const renderStar = (x, y, size = 14) => (
-    <polygon
-      points={`
-        ${x},${y - size}
-        ${x + size * 0.22},${y - size * 0.3}
-        ${x + size},${y - size * 0.3}
-        ${x + size * 0.35},${y + size * 0.1}
-        ${x + size * 0.6},${y + size}
-        ${x},${y + size * 0.4}
-        ${x - size * 0.6},${y + size}
-        ${x - size * 0.35},${y + size * 0.1}
-        ${x - size},${y - size * 0.3}
-        ${x - size * 0.22},${y - size * 0.3}
-      `}
-      fill="#9E9E9E"
-      stroke="#757575"
-      strokeWidth="1"
-    />
-  );
+  // Helper to check if a color is active
+  const isColorActive = (color) => activeColors.includes(color);
+  
+  // Get player index for a color
+  const getPlayerIndex = (color) => activeColors.indexOf(color);
 
-  return (
-    <div className={styles.gameBoard}>
-      {/* Player Panels */}
-      <div className={styles.playerPanels}>
-        {/* Blue Panel - Top Left */}
-        <div className={`${styles.playerPanel} ${styles.panelBlue} ${currentPlayer === 0 ? styles.panelActive : ''}`}>
-          <div className={styles.panelInfo}>
-            <div className={styles.panelAvatar} style={{ backgroundColor: COLOR_CONFIG.blue.main }}>
-              {playerNames?.[0]?.[0] || 'B'}
-            </div>
-            <span className={styles.panelName}>{playerNames?.[0] || 'Blue'}</span>
+  // Render star shape for safe spots
+  const renderStar = (cx, cy, size = 12) => {
+    const points = [];
+    for (let i = 0; i < 5; i++) {
+      const outerAngle = (i * 72 - 90) * Math.PI / 180;
+      const innerAngle = ((i * 72) + 36 - 90) * Math.PI / 180;
+      points.push(`${cx + size * Math.cos(outerAngle)},${cy + size * Math.sin(outerAngle)}`);
+      points.push(`${cx + size * 0.4 * Math.cos(innerAngle)},${cy + size * 0.4 * Math.sin(innerAngle)}`);
+    }
+    return (
+      <polygon 
+        points={points.join(' ')} 
+        fill="#FFD700" 
+        stroke="#FF8F00" 
+        strokeWidth="1.5"
+      />
+    );
+  };
+
+  // Render player panel
+  const renderPlayerPanel = (color, playerIdx, position) => {
+    if (!isColorActive(color)) return null;
+    
+    const config = COLOR_CONFIG[color];
+    const isActive = currentPlayerIndex === playerIdx;
+    const name = playerNames[playerIdx] || color.charAt(0).toUpperCase() + color.slice(1);
+    
+    return (
+      <div 
+        className={`${styles.playerPanel} ${styles[`panel${color.charAt(0).toUpperCase() + color.slice(1)}`]} ${isActive ? styles.panelActive : ''}`}
+        style={{ gridArea: position }}
+      >
+        <div className={styles.panelInfo}>
+          <div className={styles.panelAvatar} style={{ backgroundColor: config.main }}>
+            {name[0].toUpperCase()}
           </div>
-          {currentPlayer === 0 && (
-            <Dice 
-              value={displayDice} 
-              isActive={canRoll} 
-              isRolling={isRolling}
-              onClick={handleDiceClick}
-              playerColor="blue"
-            />
-          )}
+          <span className={styles.panelName}>{name}</span>
         </div>
-
-        {/* Red Panel - Top Right */}
-        <div className={`${styles.playerPanel} ${styles.panelRed} ${currentPlayer === 1 ? styles.panelActive : ''}`}>
-          <div className={styles.panelInfo}>
-            <div className={styles.panelAvatar} style={{ backgroundColor: COLOR_CONFIG.red.main }}>
-              {playerNames?.[1]?.[0] || 'R'}
-            </div>
-            <span className={styles.panelName}>{playerNames?.[1] || 'Red'}</span>
-          </div>
-          {currentPlayer === 1 && (
-            <Dice 
-              value={displayDice} 
-              isActive={canRoll} 
-              isRolling={isRolling}
-              onClick={handleDiceClick}
-              playerColor="red"
-            />
-          )}
-        </div>
-
-        {/* Yellow Panel - Bottom Left */}
-        {numPlayers >= 3 && (
-          <div className={`${styles.playerPanel} ${styles.panelYellow} ${currentPlayer === 2 ? styles.panelActive : ''}`}>
-            <div className={styles.panelInfo}>
-              <div className={styles.panelAvatar} style={{ backgroundColor: COLOR_CONFIG.yellow.main }}>
-                {playerNames?.[2]?.[0] || 'Y'}
-              </div>
-              <span className={styles.panelName}>{playerNames?.[2] || 'Yellow'}</span>
-            </div>
-            {currentPlayer === 2 && (
-              <Dice 
-                value={displayDice} 
-                isActive={canRoll} 
-                isRolling={isRolling}
-                onClick={handleDiceClick}
-                playerColor="yellow"
-              />
-            )}
-          </div>
-        )}
-
-        {/* Green Panel - Bottom Right */}
-        {numPlayers >= 4 && (
-          <div className={`${styles.playerPanel} ${styles.panelGreen} ${currentPlayer === 3 ? styles.panelActive : ''}`}>
-            <div className={styles.panelInfo}>
-              <div className={styles.panelAvatar} style={{ backgroundColor: COLOR_CONFIG.green.main }}>
-                {playerNames?.[3]?.[0] || 'G'}
-              </div>
-              <span className={styles.panelName}>{playerNames?.[3] || 'Green'}</span>
-            </div>
-            {currentPlayer === 3 && (
-              <Dice 
-                value={displayDice} 
-                isActive={canRoll} 
-                isRolling={isRolling}
-                onClick={handleDiceClick}
-                playerColor="green"
-              />
-            )}
-          </div>
+        {isActive && (
+          <Dice 
+            value={displayDice} 
+            isActive={canRoll} 
+            isRolling={isRolling}
+            onClick={handleDiceClick}
+            color={color}
+          />
         )}
       </div>
+    );
+  };
 
-      {/* Main Board */}
+  return (
+    <div className={styles.gameContainer}>
+      {/* Top panels */}
+      <div className={styles.topPanels}>
+        {renderPlayerPanel('blue', getPlayerIndex('blue'), 'left')}
+        {renderPlayerPanel('red', getPlayerIndex('red'), 'right')}
+      </div>
+      
+      {/* Game status */}
+      <div className={styles.statusBar}>
+        <div className={styles.turnIndicator}>
+          <span className={styles.turnDot} style={{ backgroundColor: COLOR_CONFIG[currentColor]?.main }} />
+          <span className={styles.turnText}>{playerNames[currentPlayerIndex]}'s Turn</span>
+        </div>
+        <span className={styles.statusText}>
+          {canRoll ? 'Tap dice to roll!' : 
+           movableTokens.length > 0 ? `Rolled ${diceValue} - tap a token` : 
+           diceValue ? `Rolled ${diceValue} - no moves` : '...'}
+        </span>
+      </div>
+
+      {/* Board */}
       <div className={styles.boardWrapper}>
         <svg 
           className={styles.ludoBoard}
           viewBox={`0 0 ${boardPixels} ${boardPixels}`}
+          preserveAspectRatio="xMidYMid meet"
         >
           <defs>
-            <radialGradient id="tokenShine" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="white" stopOpacity="0.6"/>
-              <stop offset="50%" stopColor="white" stopOpacity="0.2"/>
+            <radialGradient id="tokenShine" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="white" stopOpacity="0.5"/>
+              <stop offset="50%" stopColor="white" stopOpacity="0.15"/>
               <stop offset="100%" stopColor="white" stopOpacity="0"/>
             </radialGradient>
           </defs>
 
-          {/* Board Background */}
-          <rect width={boardPixels} height={boardPixels} fill="#ECEFF1" />
+          {/* Board background */}
+          <rect width={boardPixels} height={boardPixels} fill="#F5F5DC" />
 
           {/* === HOME AREAS === */}
           
           {/* Blue Home - Top Left */}
           <rect x={0} y={0} width={6*CELL_SIZE} height={6*CELL_SIZE} 
-            fill={COLOR_CONFIG.blue.homeArea} stroke="#1565C0" strokeWidth="3" />
-          <rect x={CELL_SIZE*0.6} y={CELL_SIZE*0.6} width={4.8*CELL_SIZE} height={4.8*CELL_SIZE} 
-            fill="#FAFAFA" rx="8" />
+            fill={COLOR_CONFIG.blue.home} stroke={COLOR_CONFIG.blue.dark} strokeWidth="3" />
+          <rect x={CELL_SIZE*0.7} y={CELL_SIZE*0.7} width={4.6*CELL_SIZE} height={4.6*CELL_SIZE} 
+            fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.blue.map((pos, i) => (
             <g key={`blue-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.42} 
-                fill={COLOR_CONFIG.blue.main} stroke="#1565C0" strokeWidth="2" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.28} 
-                fill="none" stroke="#BBDEFB" strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
+                fill={COLOR_CONFIG.blue.main} stroke={COLOR_CONFIG.blue.dark} strokeWidth="2" />
             </g>
           ))}
           
           {/* Red Home - Top Right */}
           <rect x={9*CELL_SIZE} y={0} width={6*CELL_SIZE} height={6*CELL_SIZE} 
-            fill={COLOR_CONFIG.red.homeArea} stroke="#C62828" strokeWidth="3" />
-          <rect x={9.6*CELL_SIZE} y={CELL_SIZE*0.6} width={4.8*CELL_SIZE} height={4.8*CELL_SIZE} 
-            fill="#FAFAFA" rx="8" />
+            fill={COLOR_CONFIG.red.home} stroke={COLOR_CONFIG.red.dark} strokeWidth="3" />
+          <rect x={9.7*CELL_SIZE} y={CELL_SIZE*0.7} width={4.6*CELL_SIZE} height={4.6*CELL_SIZE} 
+            fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.red.map((pos, i) => (
             <g key={`red-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.42} 
-                fill={COLOR_CONFIG.red.main} stroke="#C62828" strokeWidth="2" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.28} 
-                fill="none" stroke="#FFCDD2" strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
+                fill={COLOR_CONFIG.red.main} stroke={COLOR_CONFIG.red.dark} strokeWidth="2" />
             </g>
           ))}
           
           {/* Yellow Home - Bottom Left */}
           <rect x={0} y={9*CELL_SIZE} width={6*CELL_SIZE} height={6*CELL_SIZE} 
-            fill={COLOR_CONFIG.yellow.homeArea} stroke="#F9A825" strokeWidth="3" />
-          <rect x={CELL_SIZE*0.6} y={9.6*CELL_SIZE} width={4.8*CELL_SIZE} height={4.8*CELL_SIZE} 
-            fill="#FAFAFA" rx="8" />
+            fill={COLOR_CONFIG.yellow.home} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="3" />
+          <rect x={CELL_SIZE*0.7} y={9.7*CELL_SIZE} width={4.6*CELL_SIZE} height={4.6*CELL_SIZE} 
+            fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.yellow.map((pos, i) => (
             <g key={`yellow-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.42} 
-                fill={COLOR_CONFIG.yellow.main} stroke="#F9A825" strokeWidth="2" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.28} 
-                fill="none" stroke="#FFF9C4" strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
+                fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2" />
             </g>
           ))}
           
           {/* Green Home - Bottom Right */}
           <rect x={9*CELL_SIZE} y={9*CELL_SIZE} width={6*CELL_SIZE} height={6*CELL_SIZE} 
-            fill={COLOR_CONFIG.green.homeArea} stroke="#2E7D32" strokeWidth="3" />
-          <rect x={9.6*CELL_SIZE} y={9.6*CELL_SIZE} width={4.8*CELL_SIZE} height={4.8*CELL_SIZE} 
-            fill="#FAFAFA" rx="8" />
+            fill={COLOR_CONFIG.green.home} stroke={COLOR_CONFIG.green.dark} strokeWidth="3" />
+          <rect x={9.7*CELL_SIZE} y={9.7*CELL_SIZE} width={4.6*CELL_SIZE} height={4.6*CELL_SIZE} 
+            fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.green.map((pos, i) => (
             <g key={`green-base-${i}`}>
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.42} 
-                fill={COLOR_CONFIG.green.main} stroke="#2E7D32" strokeWidth="2" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.28} 
-                fill="none" stroke="#C8E6C9" strokeWidth="2" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={CELL_SIZE*0.4} 
+                fill={COLOR_CONFIG.green.main} stroke={COLOR_CONFIG.green.dark} strokeWidth="2" />
             </g>
           ))}
 
           {/* === PATH CELLS === */}
           
-          {/* Left column (3 cols x 6 rows) */}
+          {/* Left columns (cols 0-2, rows 6-8) */}
           {[0, 1, 2].map(col => 
             [6, 7, 8].map(row => (
               <rect key={`path-l-${col}-${row}`} 
@@ -535,7 +448,7 @@ function LudoBoard({
             ))
           )}
           
-          {/* Right column (3 cols x 6 rows) */}
+          {/* Right columns (cols 12-14, rows 6-8) */}
           {[12, 13, 14].map(col => 
             [6, 7, 8].map(row => (
               <rect key={`path-r-${col}-${row}`} 
@@ -545,7 +458,7 @@ function LudoBoard({
             ))
           )}
           
-          {/* Top row (6 cols x 3 rows) */}
+          {/* Top rows (cols 6-8, rows 0-2) */}
           {[6, 7, 8].map(col => 
             [0, 1, 2].map(row => (
               <rect key={`path-t-${col}-${row}`} 
@@ -555,7 +468,7 @@ function LudoBoard({
             ))
           )}
           
-          {/* Bottom row (6 cols x 3 rows) */}
+          {/* Bottom rows (cols 6-8, rows 12-14) */}
           {[6, 7, 8].map(col => 
             [12, 13, 14].map(row => (
               <rect key={`path-b-${col}-${row}`} 
@@ -564,11 +477,19 @@ function LudoBoard({
                 fill="#FAFAFA" stroke="#BDBDBD" strokeWidth="1" />
             ))
           )}
-          
-          {/* Center 3x3 */}
-          {[6, 7, 8].map(col => 
+
+          {/* Cross center paths (cols 3-5 & 9-11, row 6-8 for horizontal; col 6-8, rows 3-5 & 9-11 for vertical) */}
+          {[3, 4, 5, 9, 10, 11].map(col => 
             [6, 7, 8].map(row => (
-              <rect key={`path-c-${col}-${row}`} 
+              <rect key={`path-hc-${col}-${row}`} 
+                x={col * CELL_SIZE} y={row * CELL_SIZE}
+                width={CELL_SIZE} height={CELL_SIZE}
+                fill="#FAFAFA" stroke="#BDBDBD" strokeWidth="1" />
+            ))
+          )}
+          {[6, 7, 8].map(col => 
+            [3, 4, 5, 9, 10, 11].map(row => (
+              <rect key={`path-vc-${col}-${row}`} 
                 x={col * CELL_SIZE} y={row * CELL_SIZE}
                 width={CELL_SIZE} height={CELL_SIZE}
                 fill="#FAFAFA" stroke="#BDBDBD" strokeWidth="1" />
@@ -581,28 +502,28 @@ function LudoBoard({
           {HOME_STRETCH.blue.map((pos, i) => (
             <rect key={`blue-str-${i}`} x={pos.x} y={pos.y}
               width={CELL_SIZE} height={CELL_SIZE}
-              fill={COLOR_CONFIG.blue.stretch} stroke={COLOR_CONFIG.blue.main} strokeWidth="1.5" />
+              fill={COLOR_CONFIG.blue.stretch} stroke={COLOR_CONFIG.blue.main} strokeWidth="2" />
           ))}
           
           {/* Red stretch (col 7, rows 1-6) */}
           {HOME_STRETCH.red.map((pos, i) => (
             <rect key={`red-str-${i}`} x={pos.x} y={pos.y}
               width={CELL_SIZE} height={CELL_SIZE}
-              fill={COLOR_CONFIG.red.stretch} stroke={COLOR_CONFIG.red.main} strokeWidth="1.5" />
+              fill={COLOR_CONFIG.red.stretch} stroke={COLOR_CONFIG.red.main} strokeWidth="2" />
           ))}
           
           {/* Green stretch (row 7, cols 8-13) */}
           {HOME_STRETCH.green.map((pos, i) => (
             <rect key={`green-str-${i}`} x={pos.x} y={pos.y}
               width={CELL_SIZE} height={CELL_SIZE}
-              fill={COLOR_CONFIG.green.stretch} stroke={COLOR_CONFIG.green.main} strokeWidth="1.5" />
+              fill={COLOR_CONFIG.green.stretch} stroke={COLOR_CONFIG.green.main} strokeWidth="2" />
           ))}
           
           {/* Yellow stretch (col 7, rows 8-13) */}
           {HOME_STRETCH.yellow.map((pos, i) => (
             <rect key={`yellow-str-${i}`} x={pos.x} y={pos.y}
               width={CELL_SIZE} height={CELL_SIZE}
-              fill={COLOR_CONFIG.yellow.stretch} stroke={COLOR_CONFIG.yellow.main} strokeWidth="1.5" />
+              fill={COLOR_CONFIG.yellow.stretch} stroke={COLOR_CONFIG.yellow.main} strokeWidth="2" />
           ))}
 
           {/* === CENTER TRIANGLES === */}
@@ -615,48 +536,44 @@ function LudoBoard({
           <polygon points={`${6*CELL_SIZE},${9*CELL_SIZE} ${7.5*CELL_SIZE},${7.5*CELL_SIZE} ${9*CELL_SIZE},${9*CELL_SIZE}`}
             fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2" />
 
+          {/* === START POSITIONS (colored cells with arrows) === */}
+          <rect x={1*CELL_SIZE} y={6*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
+            fill={COLOR_CONFIG.blue.stretch} stroke={COLOR_CONFIG.blue.main} strokeWidth="2.5" />
+          <text x={1.5*CELL_SIZE} y={6.65*CELL_SIZE} fontSize="20" fill={COLOR_CONFIG.blue.dark} textAnchor="middle" fontWeight="bold">→</text>
+          
+          <rect x={8*CELL_SIZE} y={1*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
+            fill={COLOR_CONFIG.red.stretch} stroke={COLOR_CONFIG.red.main} strokeWidth="2.5" />
+          <text x={8.5*CELL_SIZE} y={1.7*CELL_SIZE} fontSize="20" fill={COLOR_CONFIG.red.dark} textAnchor="middle" fontWeight="bold">↓</text>
+          
+          <rect x={13*CELL_SIZE} y={8*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
+            fill={COLOR_CONFIG.green.stretch} stroke={COLOR_CONFIG.green.main} strokeWidth="2.5" />
+          <text x={13.5*CELL_SIZE} y={8.65*CELL_SIZE} fontSize="20" fill={COLOR_CONFIG.green.dark} textAnchor="middle" fontWeight="bold">←</text>
+          
+          <rect x={6*CELL_SIZE} y={13*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
+            fill={COLOR_CONFIG.yellow.stretch} stroke={COLOR_CONFIG.yellow.main} strokeWidth="2.5" />
+          <text x={6.5*CELL_SIZE} y={13.7*CELL_SIZE} fontSize="20" fill={COLOR_CONFIG.yellow.dark} textAnchor="middle" fontWeight="bold">↑</text>
+
           {/* === SAFE SPOTS (STARS) === */}
-          {SAFE_SPOTS.map(idx => {
+          {SAFE_SPOTS.map((idx) => {
             const pos = MAIN_PATH[idx];
             if (!pos) return null;
             const cx = pos.x + CELL_SIZE / 2;
             const cy = pos.y + CELL_SIZE / 2;
             return (
               <g key={`star-${idx}`}>
-                {renderStar(cx, cy, 12)}
+                {renderStar(cx, cy, 14)}
               </g>
             );
           })}
 
-          {/* === START POSITION COLORED CELLS === */}
-          {/* Blue start */}
-          <rect x={1*CELL_SIZE} y={6*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
-            fill={COLOR_CONFIG.blue.stretch} stroke={COLOR_CONFIG.blue.main} strokeWidth="2" />
-          <text x={1.5*CELL_SIZE} y={6.6*CELL_SIZE} fontSize="16" fill={COLOR_CONFIG.blue.dark} textAnchor="middle">→</text>
-          
-          {/* Red start */}
-          <rect x={8*CELL_SIZE} y={1*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
-            fill={COLOR_CONFIG.red.stretch} stroke={COLOR_CONFIG.red.main} strokeWidth="2" />
-          <text x={8.5*CELL_SIZE} y={1.7*CELL_SIZE} fontSize="16" fill={COLOR_CONFIG.red.dark} textAnchor="middle">↓</text>
-          
-          {/* Green start */}
-          <rect x={13*CELL_SIZE} y={8*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
-            fill={COLOR_CONFIG.green.stretch} stroke={COLOR_CONFIG.green.main} strokeWidth="2" />
-          <text x={13.5*CELL_SIZE} y={8.65*CELL_SIZE} fontSize="16" fill={COLOR_CONFIG.green.dark} textAnchor="middle">←</text>
-          
-          {/* Yellow start */}
-          <rect x={6*CELL_SIZE} y={13*CELL_SIZE} width={CELL_SIZE} height={CELL_SIZE}
-            fill={COLOR_CONFIG.yellow.stretch} stroke={COLOR_CONFIG.yellow.main} strokeWidth="2" />
-          <text x={6.5*CELL_SIZE} y={13.65*CELL_SIZE} fontSize="16" fill={COLOR_CONFIG.yellow.dark} textAnchor="middle">↑</text>
-
           {/* === TOKENS === */}
-          {tokens && Object.keys(tokens).map(color => 
+          {tokens && activeColors.map(color => 
             tokens[color]?.map((token, idx) => {
               const pos = getTokenPosition(color, token);
               if (!pos) return null;
 
-              const colorIdx = COLORS.indexOf(color);
-              const isMovable = movableTokens?.includes(idx) && colorIdx === currentPlayer;
+              const playerIdx = getPlayerIndex(color);
+              const isMovable = movableTokens?.includes(idx) && playerIdx === currentPlayerIndex;
 
               return (
                 <Token
@@ -673,9 +590,14 @@ function LudoBoard({
           )}
         </svg>
       </div>
+
+      {/* Bottom panels */}
+      <div className={styles.bottomPanels}>
+        {renderPlayerPanel('yellow', getPlayerIndex('yellow'), 'left')}
+        {renderPlayerPanel('green', getPlayerIndex('green'), 'right')}
+      </div>
     </div>
   );
 }
 
 export default LudoBoard;
-export { COLORS, START_POS, HOME_STRETCH, MAIN_PATH, SAFE_SPOTS };
