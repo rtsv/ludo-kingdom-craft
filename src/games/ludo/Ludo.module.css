@@ -245,34 +245,45 @@
 /* === TOKEN ANIMATIONS === */
 
 .tokenWrapper {
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.18s ease-out;
 }
 
 .movableToken {
   cursor: pointer;
-  animation: tokenPulse 0.8s ease-in-out infinite;
+  animation: tokenWiggle 0.4s ease-in-out infinite;
 }
 
 .movableToken:hover {
   filter: brightness(1.15);
 }
 
-@keyframes tokenPulse {
+/* Wiggle/jiggle animation for movable tokens */
+@keyframes tokenWiggle {
   0%, 100% { 
-    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.9));
+    transform: var(--base-transform) rotate(0deg);
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.9));
+  }
+  25% { 
+    transform: var(--base-transform) rotate(-8deg) translateX(-2px);
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 1));
   }
   50% { 
-    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 1)) brightness(1.1);
+    transform: var(--base-transform) rotate(0deg) translateY(-3px);
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 1));
+  }
+  75% { 
+    transform: var(--base-transform) rotate(8deg) translateX(2px);
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 1));
   }
 }
 
 .tokenGlow {
-  animation: glowExpand 1.2s ease-in-out infinite;
+  animation: glowExpand 1s ease-in-out infinite;
 }
 
 .tokenGlow2 {
-  animation: glowExpand 1.2s ease-in-out infinite;
-  animation-delay: 0.4s;
+  animation: glowExpand 1s ease-in-out infinite;
+  animation-delay: 0.3s;
 }
 
 @keyframes glowExpand {
@@ -281,7 +292,7 @@
     opacity: 0.9; 
   }
   100% { 
-    r: 22;
+    r: 24;
     opacity: 0; 
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import styles from "./Ludo.module.css";
 
 // Board is 15x15 grid
@@ -115,8 +115,8 @@ const HOME_BASES = {
   green: [g2p(10.3, 10.3), g2p(12.7, 10.3), g2p(10.3, 12.7), g2p(12.7, 12.7)]
 };
 
-// Home base circle radius
-const HOME_CIRCLE_RADIUS = CELL_SIZE * 0.55;
+// Home base circle radius - increased for better visibility
+const HOME_CIRCLE_RADIUS = CELL_SIZE * 0.6;
 
 // Starting positions on main path for each color
 const START_POS = { blue: 0, red: 13, green: 26, yellow: 39 };
@@ -132,13 +132,19 @@ const HOME_STRETCH = {
 // Safe spots (star positions) - indices on main path
 const SAFE_SPOTS = [0, 8, 13, 21, 26, 34, 39, 47];
 
-// Token component - Location pin/marker shape with smooth movement
-function Token({ x, y, color, isMovable, onClick, tokenId }) {
+// Token component - Location pin/marker shape with smooth step-by-step movement
+function Token({ x, y, color, isMovable, onClick, tokenId, stackIndex = 0, totalStacked = 1 }) {
   const config = COLOR_CONFIG[color];
+  const [animatedPos, setAnimatedPos] = useState({ x, y });
+  const prevPosRef = useRef({ x, y });
+  
+  // Calculate offset for stacked tokens
+  const stackOffset = totalStacked > 1 ? (stackIndex - (totalStacked - 1) / 2) * 10 : 0;
+  const stackScale = totalStacked > 1 ? 0.85 : 1;
   
   // Pin dimensions (relative, will be positioned via transform)
-  const pinWidth = CELL_SIZE * 0.75;
-  const pinHeight = CELL_SIZE * 0.95;
+  const pinWidth = CELL_SIZE * 0.75 * stackScale;
+  const pinHeight = CELL_SIZE * 0.95 * stackScale;
   const headRadius = pinWidth * 0.45;
   
   // Center offset
@@ -158,13 +164,50 @@ function Token({ x, y, color, isMovable, onClick, tokenId }) {
     Z
   `;
   
+  // Step-by-step animation when position changes
+  useEffect(() => {
+    const prev = prevPosRef.current;
+    
+    if (prev.x !== x || prev.y !== y) {
+      // Calculate steps between positions
+      const dx = x - prev.x;
+      const dy = y - prev.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.max(1, Math.round(distance / CELL_SIZE));
+      
+      if (steps > 1) {
+        // Animate step by step
+        let currentStep = 0;
+        const stepX = dx / steps;
+        const stepY = dy / steps;
+        
+        const animateStep = () => {
+          currentStep++;
+          if (currentStep <= steps) {
+            setAnimatedPos({
+              x: prev.x + stepX * currentStep,
+              y: prev.y + stepY * currentStep
+            });
+            setTimeout(animateStep, 180); // 180ms per cell
+          }
+        };
+        
+        animateStep();
+      } else {
+        setAnimatedPos({ x, y });
+      }
+      
+      prevPosRef.current = { x, y };
+    }
+  }, [x, y]);
+  
   return (
     <g 
       className={`${styles.tokenWrapper} ${isMovable ? styles.movableToken : ''}`}
       onClick={isMovable ? onClick : undefined}
       style={{ 
         cursor: isMovable ? 'pointer' : 'default',
-        transform: `translate(${x + centerX}px, ${y + centerY}px)`,
+        transform: `translate(${animatedPos.x + centerX + stackOffset}px, ${animatedPos.y + centerY + stackOffset}px)`,
       }}
     >
       {/* Movable glow effect */}
@@ -195,6 +238,14 @@ function Token({ x, y, color, isMovable, onClick, tokenId }) {
       
       {/* Highlight on top */}
       <ellipse cx={-headRadius * 0.25} cy={-pinHeight * 0.35} rx={headRadius * 0.2} ry={headRadius * 0.12} fill="#fff" opacity="0.6" />
+      
+      {/* Stack indicator - show count badge for stacked tokens */}
+      {totalStacked > 1 && stackIndex === totalStacked - 1 && (
+        <g>
+          <circle cx={headRadius * 0.7} cy={-pinHeight * 0.45} r={8} fill="#fff" stroke={config.dark} strokeWidth="1.5" />
+          <text x={headRadius * 0.7} y={-pinHeight * 0.45 + 4} fontSize="10" fontWeight="bold" fill={config.dark} textAnchor="middle">{totalStacked}</text>
+        </g>
+      )}
     </g>
   );
 }
@@ -324,8 +375,8 @@ function LudoBoard({
   // Get player index for a color
   const getPlayerIndex = (color) => activeColors.indexOf(color);
 
-  // Render star shape for safe spots
-  const renderStar = (cx, cy, size = 12) => {
+  // Render star shape for safe spots - larger and more prominent
+  const renderStar = (cx, cy, size = 14) => {
     const points = [];
     for (let i = 0; i < 5; i++) {
       const outerAngle = (i * 72 - 90) * Math.PI / 180;
@@ -334,14 +385,44 @@ function LudoBoard({
       points.push(`${cx + size * 0.4 * Math.cos(innerAngle)},${cy + size * 0.4 * Math.sin(innerAngle)}`);
     }
     return (
-      <polygon 
-        points={points.join(' ')} 
-        fill="#FFD700" 
-        stroke="#FF8F00" 
-        strokeWidth="1.5"
-      />
+      <g>
+        {/* Outer glow for safe spot */}
+        <circle cx={cx} cy={cy} r={size + 4} fill="rgba(255, 215, 0, 0.25)" />
+        <polygon 
+          points={points.join(' ')} 
+          fill="#FFD700" 
+          stroke="#FF8F00" 
+          strokeWidth="2"
+        />
+        {/* Inner shine */}
+        <circle cx={cx - 2} cy={cy - 2} r={3} fill="rgba(255,255,255,0.6)" />
+      </g>
     );
   };
+  
+  // Calculate token stacking - group tokens by position
+  const getTokensAtPosition = () => {
+    const positionMap = {};
+    
+    activeColors.forEach(color => {
+      tokens[color]?.forEach((token, idx) => {
+        const pos = getTokenPosition(color, token);
+        if (!pos) return;
+        
+        // Create position key
+        const key = `${Math.round(pos.x)}-${Math.round(pos.y)}`;
+        
+        if (!positionMap[key]) {
+          positionMap[key] = [];
+        }
+        positionMap[key].push({ color, token, idx, pos });
+      });
+    });
+    
+    return positionMap;
+  };
+  
+  const tokenPositionMap = getTokensAtPosition();
 
   // Render player panel
   const renderPlayerPanel = (color, playerIdx, position) => {
@@ -423,10 +504,18 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.blue.map((pos, i) => (
             <g key={`blue-base-${i}`}>
+              {/* Outer dashed ring for home spot distinction */}
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS + 4} 
+                fill="none" stroke={COLOR_CONFIG.blue.dark} strokeWidth="2" strokeDasharray="4,3" opacity="0.6" />
+              {/* Main circle */}
               <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
-                fill={COLOR_CONFIG.blue.main} stroke={COLOR_CONFIG.blue.dark} strokeWidth="2.5" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
-                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
+                fill={COLOR_CONFIG.blue.main} stroke={COLOR_CONFIG.blue.dark} strokeWidth="3" />
+              {/* Inner decorative ring */}
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.65} 
+                fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.6" />
+              {/* Center dot */}
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.25} 
+                fill="#fff" opacity="0.7" />
             </g>
           ))}
           
@@ -437,10 +526,14 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.red.map((pos, i) => (
             <g key={`red-base-${i}`}>
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS + 4} 
+                fill="none" stroke={COLOR_CONFIG.red.dark} strokeWidth="2" strokeDasharray="4,3" opacity="0.6" />
               <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
-                fill={COLOR_CONFIG.red.main} stroke={COLOR_CONFIG.red.dark} strokeWidth="2.5" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
-                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
+                fill={COLOR_CONFIG.red.main} stroke={COLOR_CONFIG.red.dark} strokeWidth="3" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.65} 
+                fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.6" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.25} 
+                fill="#fff" opacity="0.7" />
             </g>
           ))}
           
@@ -451,10 +544,14 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.yellow.map((pos, i) => (
             <g key={`yellow-base-${i}`}>
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS + 4} 
+                fill="none" stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2" strokeDasharray="4,3" opacity="0.6" />
               <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
-                fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="2.5" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
-                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
+                fill={COLOR_CONFIG.yellow.main} stroke={COLOR_CONFIG.yellow.dark} strokeWidth="3" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.65} 
+                fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.6" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.25} 
+                fill="#fff" opacity="0.7" />
             </g>
           ))}
           
@@ -465,10 +562,14 @@ function LudoBoard({
             fill="#FAFAFA" rx="8" stroke="#E0E0E0" strokeWidth="2" />
           {HOME_BASES.green.map((pos, i) => (
             <g key={`green-base-${i}`}>
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS + 4} 
+                fill="none" stroke={COLOR_CONFIG.green.dark} strokeWidth="2" strokeDasharray="4,3" opacity="0.6" />
               <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS} 
-                fill={COLOR_CONFIG.green.main} stroke={COLOR_CONFIG.green.dark} strokeWidth="2.5" />
-              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.6} 
-                fill="none" stroke="#fff" strokeWidth="2" opacity="0.5" />
+                fill={COLOR_CONFIG.green.main} stroke={COLOR_CONFIG.green.dark} strokeWidth="3" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.65} 
+                fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.6" />
+              <circle cx={pos.x + CELL_SIZE/2} cy={pos.y + CELL_SIZE/2} r={HOME_CIRCLE_RADIUS * 0.25} 
+                fill="#fff" opacity="0.7" />
             </g>
           ))}
 
@@ -603,11 +704,9 @@ function LudoBoard({
           })}
 
           {/* === TOKENS === */}
-          {tokens && activeColors.map(color => 
-            tokens[color]?.map((token, idx) => {
-              const pos = getTokenPosition(color, token);
-              if (!pos) return null;
-
+          {tokens && Object.entries(tokenPositionMap).map(([posKey, tokensAtPos]) => 
+            tokensAtPos.map((tokenData, stackIdx) => {
+              const { color, token, idx, pos } = tokenData;
               const playerIdx = getPlayerIndex(color);
               const isMovable = movableTokens?.includes(idx) && playerIdx === currentPlayerIndex;
 
@@ -620,6 +719,8 @@ function LudoBoard({
                   tokenId={idx}
                   isMovable={isMovable}
                   onClick={() => onTokenClick(idx)}
+                  stackIndex={stackIdx}
+                  totalStacked={tokensAtPos.length}
                 />
               );
             })
