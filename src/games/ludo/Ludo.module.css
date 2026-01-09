@@ -2,8 +2,18 @@
    LUDO KING STYLE - COMPLETE CSS
    ============================================ */
 
-/* === PAGE LAYOUTS === */
+/* Online indicator */
+.onlineIndicator {
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
 
+/* === PAGE LAYOUTS === */
 .setupPage {
   min-height: 100vh;
   background: linear-gradient(135deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%);

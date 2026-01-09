@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import LudoBoard from "./LudoBoard";
+import GameLayout from "../../components/game/GameLayout";
+import GameModeSelector from "../../components/game/GameModeSelector";
+import OnlineRoomSetup from "../../components/game/OnlineRoomSetup";
+import OnlineRoomExample from "../../components/game/OnlineRoomExample";
+import CustomAlert from "../../components/game/CustomAlert";
+import PlayerNameInput from "../../components/game/PlayerNameInput";
+import roomService from "../../services/roomService";
 import styles from "./Ludo.module.css";
 
 // Safe positions on the board (star positions) - absolute positions
@@ -14,21 +21,33 @@ const START_POSITIONS = {
 };
 
 // Home stretch entry - when a token passes this position, it enters home stretch
-// These are the last positions on main path before entering home stretch
 const HOME_ENTRY = {
-  blue: 51,   // Blue enters home stretch after position 51
-  red: 12,    // Red enters home stretch after position 12
-  green: 25,  // Green enters home stretch after position 25
-  yellow: 38  // Yellow enters home stretch after position 38
+  blue: 51,
+  red: 12,
+  green: 25,
+  yellow: 38
 };
 
-// Total positions: 52 (circular) + 6 (home stretch) per player
 const MAIN_PATH_LENGTH = 52;
 
-function Ludo() {
+function Ludo({ onBack, initialRoomCode }) {
+  const [gameMode, setGameMode] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [numPlayers, setNumPlayers] = useState(2);
   const [playerNames, setPlayerNames] = useState(["", ""]);
+
+  // Online multiplayer states
+  const [isOnlineMode, setIsOnlineMode] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [isInRoom, setIsInRoom] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [waitingForPlayers, setWaitingForPlayers] = useState(false);
+  const [connectedPlayers, setConnectedPlayers] = useState([]);
+  const [myPlayerIndex, setMyPlayerIndex] = useState(null);
+  const [alertMessage, setAlertMessage] = useState(null);
+
+  // Game states
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [diceValue, setDiceValue] = useState(null);
   const [canRoll, setCanRoll] = useState(true);
@@ -39,9 +58,6 @@ function Ludo() {
   const [gameOver, setGameOver] = useState(false);
 
   // Get active colors based on number of players
-  // 2 players: Blue vs Green (diagonal opposites like Ludo King)
-  // 3 players: Blue, Red, Green
-  // 4 players: All four colors
   const getActiveColors = useCallback(() => {
     if (numPlayers === 2) return ["blue", "green"];
     if (numPlayers === 3) return ["blue", "red", "green"];
@@ -51,9 +67,187 @@ function Ludo() {
   const activeColors = getActiveColors();
   const currentColor = activeColors[currentPlayerIndex];
 
-  // Initialize tokens for each player
+  // Auto-join room from URL
   useEffect(() => {
-    if (gameStarted) {
+    if (initialRoomCode && !gameMode && !isInRoom) {
+      setGameMode('online');
+      setIsOnlineMode(true);
+      setRoomCode(initialRoomCode.toUpperCase().trim());
+    }
+  }, [initialRoomCode, gameMode, isInRoom]);
+
+  // ============================================================
+  // FIXED: Online handlers now apply state directly without recomputing
+  // This follows the Word-Chain pattern for synchronization
+  // ============================================================
+
+  const handleGameStart = useCallback((payload) => {
+    const { players: gamePlayers, initialTokens, numPlayers: playerCount } = payload;
+    console.log('🎮 handleGameStart - Applying authoritative state:', payload);
+    
+    // Apply all state atomically from the authoritative source
+    setPlayerNames(gamePlayers);
+    setNumPlayers(playerCount);
+    setTokens(initialTokens);
+    setCurrentPlayerIndex(0);
+    setDiceValue(null);
+    setCanRoll(true);
+    setMovableTokens([]);
+    setPlayerRankings([]);
+    setGameOver(false);
+    setWaitingForPlayers(false);
+    setGameStarted(true);
+    
+    // Find my player index
+    const myIndex = gamePlayers.indexOf(roomService.playerName);
+    setMyPlayerIndex(myIndex);
+    console.log('🎮 My player index:', myIndex, 'My name:', roomService.playerName);
+  }, []);
+
+  // FIXED: Apply received dice state directly - don't recompute movable tokens
+  const handleRemoteDiceRoll = useCallback((payload) => {
+    const { roll, playerIndex, movable, canRoll: canRollState } = payload;
+    console.log('🎲 Applying remote dice roll state:', payload);
+    
+    // Apply state exactly as received from the acting player
+    setDiceValue(roll);
+    setCurrentPlayerIndex(playerIndex);
+    setMovableTokens(movable);
+    setCanRoll(canRollState);
+  }, []);
+
+  // FIXED: Apply complete token state - no local computation
+  const handleRemoteTokenMove = useCallback((payload) => {
+    const { 
+      newTokens, 
+      currentPlayerIndex: movePlayerIndex,
+      nextCanRoll,
+      nextDiceValue,
+      nextMovableTokens,
+      rankings,
+      isGameOver
+    } = payload;
+    console.log('🎯 Applying remote token move state:', payload);
+    
+    // Apply complete state from acting player
+    setTokens(newTokens);
+    setMovableTokens(nextMovableTokens || []);
+    setCanRoll(nextCanRoll);
+    setDiceValue(nextDiceValue);
+    
+    if (rankings) {
+      setPlayerRankings(rankings);
+    }
+    if (isGameOver) {
+      setGameOver(true);
+    }
+  }, []);
+
+  // FIXED: Apply turn change with complete state
+  const handleRemoteNextTurn = useCallback((payload) => {
+    const { nextPlayerIndex, canRoll: canRollState, diceValue: diceState, movableTokens: movableState } = payload;
+    console.log('➡️ Applying remote next turn state:', payload);
+    
+    setCurrentPlayerIndex(nextPlayerIndex);
+    setDiceValue(diceState !== undefined ? diceState : null);
+    setCanRoll(canRollState !== undefined ? canRollState : true);
+    setMovableTokens(movableState || []);
+  }, []);
+
+  const handleRemoteGameOver = useCallback((payload) => {
+    const { rankings } = payload;
+    console.log('🏆 Game over - Final rankings:', rankings);
+    
+    setPlayerRankings(rankings);
+    setGameOver(true);
+  }, []);
+
+  // Setup online game listeners
+  useEffect(() => {
+    if (!isOnlineMode || !isInRoom) return;
+
+    console.log('🎮 Setting up online game listeners');
+
+    const handleError = (errorMessage) => {
+      console.log('❌ Error received:', errorMessage);
+      setAlertMessage(errorMessage);
+    };
+
+    const handlePlayerJoined = (data) => {
+      console.log('👋 Player joined:', data);
+      const allPlayers = roomService.getConnectedPlayers();
+      setConnectedPlayers([...allPlayers]);
+    };
+
+    const handlePlayerLeft = (data) => {
+      console.log('👋 Player left:', data);
+      const allPlayers = roomService.getConnectedPlayers();
+      setConnectedPlayers([...allPlayers]);
+      
+      if (gameStarted) {
+        setAlertMessage(`${data.playerName || 'A player'} disconnected!`);
+      }
+    };
+
+    const handleGameAction = (data) => {
+      console.log('🎮 Game action received:', data.action, data.payload);
+      
+      switch (data.action) {
+        // FIXED: Match action name with what host sends
+        case 'game-start':
+          handleGameStart(data.payload);
+          break;
+          
+        case 'dice-roll':
+          handleRemoteDiceRoll(data.payload);
+          break;
+          
+        case 'token-move':
+          handleRemoteTokenMove(data.payload);
+          break;
+          
+        case 'next-turn':
+          handleRemoteNextTurn(data.payload);
+          break;
+
+        case 'game-over':
+          handleRemoteGameOver(data.payload);
+          break;
+          
+        case 'restart-game':
+          setGameStarted(false);
+          setWaitingForPlayers(true);
+          setPlayerNames(["", ""]);
+          setTokens({});
+          setCurrentPlayerIndex(0);
+          setDiceValue(null);
+          setCanRoll(true);
+          setMovableTokens([]);
+          setPlayerRankings([]);
+          setGameOver(false);
+          setAlertMessage(data.payload?.message || 'Game restarted');
+          break;
+      }
+    };
+
+    // Register callbacks
+    roomService.on('onError', handleError);
+    roomService.on('onPlayerJoined', handlePlayerJoined);
+    roomService.on('onPlayerLeft', handlePlayerLeft);
+    roomService.on('onGameAction', handleGameAction);
+
+    // Get initial player list
+    const initialPlayers = roomService.getConnectedPlayers();
+    setConnectedPlayers([...initialPlayers]);
+
+    return () => {
+      console.log('🧹 Cleaning up online game listeners');
+    };
+  }, [isOnlineMode, isInRoom, handleGameStart, handleRemoteDiceRoll, handleRemoteTokenMove, handleRemoteNextTurn, handleRemoteGameOver, gameStarted]);
+
+  // Initialize tokens for each player - ONLY FOR LOCAL MODE
+  useEffect(() => {
+    if (gameStarted && !isOnlineMode) {
       const colors = getActiveColors();
       const initialTokens = {};
       
@@ -68,7 +262,7 @@ function Ludo() {
       
       setTokens(initialTokens);
     }
-  }, [gameStarted, getActiveColors]);
+  }, [gameStarted, isOnlineMode, getActiveColors]);
 
   function handlePlayerCountChange(count) {
     setNumPlayers(count);
@@ -105,57 +299,31 @@ function Ludo() {
     return (startPos + relativePosition) % MAIN_PATH_LENGTH;
   }
 
-  // Check if a position is safe (star or starting position)
+  // Check if a position is safe
   function isSafePosition(absolutePosition) {
     return SAFE_POSITIONS.includes(absolutePosition);
   }
 
-  function rollDice() {
-    if (!canRoll || winner || gameOver) return;
-
-    const roll = Math.floor(Math.random() * 6) + 1;
-    setDiceValue(roll);
-    setCanRoll(false);
-
-    const playerTokens = tokens[currentColor];
-    
-    // Check if current player has already finished all tokens
-    const hasFinished = playerTokens && playerTokens.every(t => t.isFinished);
-    if (!playerTokens || hasFinished) {
-      setTimeout(() => {
-        nextTurn();
-      }, 1000);
-      return;
-    }
-
+  // Calculate movable tokens for a given roll
+  function calculateMovableTokens(playerTokens, roll, color) {
     const movable = [];
-
+    
     playerTokens.forEach((token, idx) => {
       if (token.isFinished) return;
       
       if (token.isHome) {
-        // Can only move out of home with a 6
-        if (roll === 6) {
-          movable.push(idx);
-        }
+        if (roll === 6) movable.push(idx);
       } else {
-        // Token is on the board
         const currentPos = token.position;
         
-        // Check if in home stretch (positions 52-57)
         if (currentPos >= MAIN_PATH_LENGTH) {
           const homeStretchPos = currentPos - MAIN_PATH_LENGTH;
           const newHomeStretchPos = homeStretchPos + roll;
-          // Can only move if exact or less than finish
-          if (newHomeStretchPos <= 5) {
-            movable.push(idx);
-          }
+          if (newHomeStretchPos <= 5) movable.push(idx);
         } else {
-          // On main path - check if move is valid
-          const currentAbsolute = getAbsolutePosition(currentColor, currentPos);
-          const homeEntry = HOME_ENTRY[currentColor];
+          const currentAbsolute = getAbsolutePosition(color, currentPos);
+          const homeEntry = HOME_ENTRY[color];
           
-          // Check if path would cross into home stretch
           let stepsToHomeEntry;
           if (currentAbsolute <= homeEntry) {
             stepsToHomeEntry = homeEntry - currentAbsolute;
@@ -163,31 +331,76 @@ function Ludo() {
             stepsToHomeEntry = MAIN_PATH_LENGTH - currentAbsolute + homeEntry;
           }
           
-          if (currentPos + roll > MAIN_PATH_LENGTH - 1 + 5) {
-            // Would overshoot finish - can't move
-          } else {
-            // Valid move
+          if (currentPos + roll <= MAIN_PATH_LENGTH - 1 + 5) {
             movable.push(idx);
           }
         }
       }
     });
+    
+    return movable;
+  }
 
+  function rollDice() {
+    if (!canRoll || gameOver) return;
+
+    // FIXED: In online mode, only current player can roll
+    if (isOnlineMode && myPlayerIndex !== currentPlayerIndex) {
+      setAlertMessage("Wait for your turn!");
+      return;
+    }
+
+    const roll = Math.floor(Math.random() * 6) + 1;
+    const playerTokens = tokens[currentColor];
+    
+    // Check if current player has already finished
+    const hasFinished = playerTokens && playerTokens.every(t => t.isFinished);
+    if (!playerTokens || hasFinished) {
+      if (isOnlineMode) {
+        // FIXED: Broadcast complete next-turn state
+        const nextIdx = (currentPlayerIndex + 1) % activeColors.length;
+        roomService.sendGameAction('next-turn', { 
+          nextPlayerIndex: nextIdx,
+          canRoll: true,
+          diceValue: null,
+          movableTokens: []
+        });
+      }
+      setTimeout(() => nextTurn(), 1000);
+      return;
+    }
+
+    const movable = calculateMovableTokens(playerTokens, roll, currentColor);
+
+    // Update local state
+    setDiceValue(roll);
+    setCanRoll(false);
     setMovableTokens(movable);
 
+    // FIXED: Broadcast complete dice state to all players
+    if (isOnlineMode) {
+      roomService.sendGameAction('dice-roll', {
+        roll,
+        playerIndex: currentPlayerIndex,
+        movable,
+        canRoll: false
+      });
+    }
+
     if (movable.length === 0) {
-      setTimeout(() => {
-        nextTurn();
-      }, 1500);
+      setTimeout(() => nextTurn(), 1500);
     } else if (movable.length === 1) {
-      setTimeout(() => {
-        moveToken(movable[0], roll);
-      }, 500);
+      setTimeout(() => moveToken(movable[0], roll), 500);
     }
   }
 
   function moveToken(tokenIndex, steps = diceValue) {
     if (!steps) return;
+    
+    // FIXED: Only current player can move
+    if (isOnlineMode && myPlayerIndex !== currentPlayerIndex) {
+      return;
+    }
     
     const newTokens = JSON.parse(JSON.stringify(tokens));
     const token = newTokens[currentColor][tokenIndex];
@@ -196,25 +409,18 @@ function Ludo() {
     let tokenFinished = false;
 
     if (token.isHome && steps === 6) {
-      // Move out of home to starting position (position 0 relative to this color)
       token.isHome = false;
       token.position = 0;
-      
-      // Check for capture at start position
       const absoluteStart = START_POSITIONS[currentColor];
       capturedOpponent = checkAndCapture(newTokens, currentColor, absoluteStart);
-      
     } else if (!token.isHome && !token.isFinished) {
       const currentPos = token.position;
-      const newPos = currentPos + steps;
       
       if (currentPos >= MAIN_PATH_LENGTH) {
-        // Already in home stretch
         const homeStretchPos = currentPos - MAIN_PATH_LENGTH;
         const newHomeStretchPos = homeStretchPos + steps;
         
         if (newHomeStretchPos >= 5) {
-          // Reached home!
           token.position = MAIN_PATH_LENGTH + 5;
           token.isFinished = true;
           tokenFinished = true;
@@ -222,21 +428,14 @@ function Ludo() {
           token.position = MAIN_PATH_LENGTH + newHomeStretchPos;
         }
       } else {
-        // On main path - need to check if entering home stretch
         const homeEntry = HOME_ENTRY[currentColor];
-        
-        // Calculate absolute positions for current and new positions
         const currentAbsolutePos = getAbsolutePosition(currentColor, currentPos);
         
-        // Check if the token will cross or land on its home entry point
         let willEnterHomeStretch = false;
         let stepsAfterHomeEntry = 0;
         
         for (let step = 1; step <= steps; step++) {
-          const testPos = currentPos + step;
-          const testAbsolutePos = getAbsolutePosition(currentColor, testPos);
-          
-          // Check if we've reached the home entry position
+          const testAbsolutePos = getAbsolutePosition(currentColor, currentPos + step);
           if (testAbsolutePos === homeEntry) {
             willEnterHomeStretch = true;
             stepsAfterHomeEntry = steps - step;
@@ -245,24 +444,16 @@ function Ludo() {
         }
         
         if (willEnterHomeStretch && stepsAfterHomeEntry >= 0) {
-          // Token enters home stretch
-          const homeStretchPos = stepsAfterHomeEntry;
-          if (homeStretchPos >= 5) {
-            // Exactly reached or passed home
+          if (stepsAfterHomeEntry >= 5) {
             token.position = MAIN_PATH_LENGTH + 5;
             token.isFinished = true;
             tokenFinished = true;
           } else {
-            token.position = MAIN_PATH_LENGTH + homeStretchPos;
+            token.position = MAIN_PATH_LENGTH + stepsAfterHomeEntry;
           }
         } else {
-          // Still on main path
-          token.position = newPos;
-          
-          // Calculate absolute position for capture check
-          const absolutePos = getAbsolutePosition(currentColor, newPos);
-          
-          // Check for capture if not on safe spot
+          token.position = currentPos + steps;
+          const absolutePos = getAbsolutePosition(currentColor, token.position);
           if (!isSafePosition(absolutePos)) {
             capturedOpponent = checkAndCapture(newTokens, currentColor, absolutePos);
           }
@@ -271,38 +462,66 @@ function Ludo() {
     }
 
     newTokens[currentColor][tokenIndex] = token;
-    setTokens(newTokens);
-    setMovableTokens([]);
-
+    
     // Check for winner
     const allFinished = newTokens[currentColor].every(t => t.isFinished);
+    let newRankings = [...playerRankings];
+    let isGameOver = false;
+    
     if (allFinished) {
-      const newRankings = [...playerRankings, playerNames[currentPlayerIndex]];
-      setPlayerRankings(newRankings);
-
+      newRankings = [...playerRankings, playerNames[currentPlayerIndex]];
+      
       if (newRankings.length === activeColors.length - 1) {
-        // Game over when only one player remains
         const remainingPlayerIndex = activeColors.findIndex(
           (_, index) => !newRankings.includes(playerNames[index])
         );
-        const finalRankings = [...newRankings, playerNames[remainingPlayerIndex]];
-        setPlayerRankings(finalRankings);
-        setGameOver(true);
-        return;
+        newRankings.push(playerNames[remainingPlayerIndex]);
+        isGameOver = true;
       }
+    }
 
+    // Determine next state
+    const getsAnotherTurn = steps === 6 || tokenFinished || capturedOpponent;
+    const nextCanRoll = getsAnotherTurn && !isGameOver && !allFinished;
+    const nextDiceValue = nextCanRoll ? null : diceValue;
+
+    // Update local state
+    setTokens(newTokens);
+    setMovableTokens([]);
+    setPlayerRankings(newRankings);
+    
+    if (isGameOver) {
+      setGameOver(true);
+      if (isOnlineMode) {
+        roomService.sendGameAction('game-over', { rankings: newRankings });
+      }
+      return;
+    }
+
+    // FIXED: Broadcast complete state after move
+    if (isOnlineMode) {
+      roomService.sendGameAction('token-move', {
+        tokenIndex,
+        steps,
+        newTokens,
+        currentPlayerIndex,
+        tokenFinished,
+        capturedOpponent,
+        nextCanRoll,
+        nextDiceValue,
+        nextMovableTokens: [],
+        rankings: newRankings.length > playerRankings.length ? newRankings : null,
+        isGameOver
+      });
+    }
+
+    if (allFinished && !isGameOver) {
       nextTurn();
       return;
     }
 
-    // Player gets another turn if:
-    // 1. They rolled a 6, OR
-    // 2. A token just finished (reached home), OR
-    // 3. They captured an opponent
-    // Otherwise, pass turn to next player
     setTimeout(() => {
-      if (steps === 6 || tokenFinished || capturedOpponent) {
-        // Player gets another turn
+      if (getsAnotherTurn) {
         setDiceValue(null);
         setCanRoll(true);
       } else {
@@ -319,21 +538,13 @@ function Ludo() {
       
       tokensState[color].forEach((token, idx) => {
         if (token.isHome || token.isFinished) return;
-        if (token.position >= MAIN_PATH_LENGTH) return; // In home stretch, safe
+        if (token.position >= MAIN_PATH_LENGTH) return;
         
-        // Calculate absolute position for this opponent token
         const tokenAbsolutePos = getAbsolutePosition(color, token.position);
-        
-        // Check if on safe position
         if (isSafePosition(tokenAbsolutePos)) return;
         
         if (tokenAbsolutePos === absolutePosition) {
-          // Capture! Send back to home
-          tokensState[color][idx] = {
-            ...token,
-            position: -1,
-            isHome: true
-          };
+          tokensState[color][idx] = { ...token, position: -1, isHome: true };
           captured = true;
         }
       });
@@ -342,16 +553,147 @@ function Ludo() {
     return captured;
   }
 
+  // FIXED: Single nextTurn function (removed duplicate)
   function nextTurn() {
     const nextIdx = (currentPlayerIndex + 1) % activeColors.length;
+    
+    // FIXED: Broadcast complete turn state
+    if (isOnlineMode) {
+      roomService.sendGameAction('next-turn', { 
+        nextPlayerIndex: nextIdx,
+        canRoll: true,
+        diceValue: null,
+        movableTokens: []
+      });
+    }
+    
     setCurrentPlayerIndex(nextIdx);
     setDiceValue(null);
     setCanRoll(true);
     setMovableTokens([]);
   }
 
-  function resetGame() {
+  // Online multiplayer functions
+  async function handleCreateOnlineRoom() {
+    if (!playerName.trim()) {
+      setAlertMessage("Please enter your name!");
+      return;
+    }
+
+    try {
+      roomService.playerName = playerName;
+      const { roomCode: code } = await roomService.createRoom();
+      setRoomCode(code);
+      setIsHost(true);
+      setIsInRoom(true);
+      setWaitingForPlayers(true);
+      setConnectedPlayers(roomService.getConnectedPlayers());
+      
+      const newUrl = `${window.location.pathname}?room=${code}`;
+      window.history.pushState({}, '', newUrl);
+    } catch (error) {
+      console.error('Error creating room:', error);
+      setAlertMessage('Failed to create room. Please try again.');
+    }
+  }
+
+  async function handleJoinOnlineRoom() {
+    if (!playerName.trim() || !roomCode.trim()) {
+      setAlertMessage("Please enter your name and room code!");
+      return;
+    }
+
+    try {
+      roomService.playerName = playerName;
+      await roomService.joinRoom(roomCode);
+      setIsInRoom(true);
+      setIsHost(false);
+      setWaitingForPlayers(true);
+      
+      const allPlayers = roomService.getConnectedPlayers();
+      setConnectedPlayers(allPlayers);
+      setMyPlayerIndex(allPlayers.length - 1);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      setAlertMessage('Failed to join room. Check the room code and try again.');
+    }
+  }
+
+  function handleStartOnlineGame() {
+    if (connectedPlayers.length < 2 || connectedPlayers.length > 4) {
+      setAlertMessage("Need 2-4 players to start!");
+      return;
+    }
+
+    if (!roomService.isConnected()) {
+      setAlertMessage("Connection issue. Please wait and try again.");
+      return;
+    }
+
+    const gamePlayerNames = connectedPlayers.map(p => p.playerName);
+    const playerCount = gamePlayerNames.length;
+    
+    let colors;
+    if (playerCount === 2) colors = ["blue", "green"];
+    else if (playerCount === 3) colors = ["blue", "red", "green"];
+    else colors = ["blue", "red", "green", "yellow"];
+    
+    const initialTokens = {};
+    colors.forEach(color => {
+      initialTokens[color] = [
+        { id: 0, position: -1, isHome: true, isFinished: false },
+        { id: 1, position: -1, isHome: true, isFinished: false },
+        { id: 2, position: -1, isHome: true, isFinished: false },
+        { id: 3, position: -1, isHome: true, isFinished: false },
+      ];
+    });
+
+    // FIXED: Use consistent action name 'game-start'
+    roomService.sendGameAction('game-start', { 
+      players: gamePlayerNames, 
+      initialTokens,
+      numPlayers: playerCount
+    });
+
+    // Apply locally for host
+    setPlayerNames(gamePlayerNames);
+    setNumPlayers(playerCount);
+    setTokens(initialTokens);
+    setGameStarted(true);
+    setWaitingForPlayers(false);
+    setMyPlayerIndex(0);
+    setCurrentPlayerIndex(0);
+    setDiceValue(null);
+    setCanRoll(true);
+  }
+
+  function handleBackToMenu() {
+    if (roomService.isConnected()) {
+      roomService.leaveRoom();
+    }
+    setGameMode(null);
     setGameStarted(false);
+    setIsOnlineMode(false);
+    setIsInRoom(false);
+    setIsHost(false);
+    setWaitingForPlayers(false);
+    setRoomCode("");
+    setPlayerName("");
+    setNumPlayers(2);
+    setPlayerNames(["", ""]);
+    setConnectedPlayers([]);
+    if (onBack) onBack();
+  }
+
+  function resetGame() {
+    if (isOnlineMode && isHost) {
+      roomService.sendGameAction('restart-game', { message: 'Host restarted the game' });
+    }
+    if (roomService.isConnected()) {
+      roomService.leaveRoom();
+    }
+    setGameStarted(false);
+    setGameMode(null);
     setNumPlayers(2);
     setPlayerNames(["", ""]);
     setCurrentPlayerIndex(0);
@@ -362,11 +704,80 @@ function Ludo() {
     setMovableTokens([]);
     setPlayerRankings([]);
     setGameOver(false);
+    setIsOnlineMode(false);
+    setIsInRoom(false);
+    setIsHost(false);
+    setWaitingForPlayers(false);
+    setRoomCode("");
+    setPlayerName("");
+    setConnectedPlayers([]);
   }
 
-  // Player Setup Screen
-  if (!gameStarted) {
-    // Color labels for display
+  // Mode Selection Screen
+  if (!gameMode) {
+    return (
+      <GameLayout title="🎲 Ludo King" onBack={onBack || handleBackToMenu}>
+        {alertMessage && (
+          <CustomAlert message={alertMessage} onClose={() => setAlertMessage(null)} />
+        )}
+        <GameModeSelector
+          onSelectLocal={() => {
+            setGameMode("local");
+            setIsOnlineMode(false);
+          }}
+          onSelectOnline={() => {
+            setGameMode("online");
+            setIsOnlineMode(true);
+          }}
+          localLabel="Play Locally"
+          onlineLabel="Play Online"
+        />
+      </GameLayout>
+    );
+  }
+
+  // Online Room Setup Screen
+  if (gameMode === 'online' && !isInRoom) {
+    return (
+      <GameLayout title="🎲 Ludo King - Online Setup" onBack={handleBackToMenu}>
+        {alertMessage && (
+          <CustomAlert message={alertMessage} onClose={() => setAlertMessage(null)} />
+        )}
+        <OnlineRoomSetup
+          playerName={playerName}
+          setPlayerName={setPlayerName}
+          roomCode={roomCode}
+          setRoomCode={setRoomCode}
+          onCreateRoom={handleCreateOnlineRoom}
+          onJoinRoom={handleJoinOnlineRoom}
+          gameName="Ludo"
+        />
+      </GameLayout>
+    );
+  }
+
+  // Online Waiting Room
+  if (isOnlineMode && isInRoom && waitingForPlayers) {
+    return (
+      <GameLayout title="🎲 Ludo King - Waiting Room" onBack={handleBackToMenu}>
+        {alertMessage && (
+          <CustomAlert message={alertMessage} onClose={() => setAlertMessage(null)} />
+        )}
+        <OnlineRoomExample
+          roomCode={roomCode}
+          connectedPlayers={connectedPlayers}
+          maxPlayers={4}
+          isHost={isHost}
+          onStartGame={handleStartOnlineGame}
+          minPlayers={2}
+          gameUrl={`${window.location.origin}/games/ludo?room=${roomCode}`}
+        />
+      </GameLayout>
+    );
+  }
+
+  // Player Setup Screen (for local mode)
+  if (gameMode === "local" && !gameStarted) {
     const getColorLabel = (index) => {
       const colors = getActiveColors();
       const colorMap = {
@@ -378,12 +789,16 @@ function Ludo() {
       return colorMap[colors[index]] || `Player ${index + 1}`;
     };
 
+    const colorSymbols = Array.from({ length: numPlayers }).map((_, i) => getColorLabel(i));
+
     return (
-      <div className={styles.setupPage}>
+      <GameLayout title="🎲 Ludo King - Player Setup" onBack={handleBackToMenu}>
+        {alertMessage && (
+          <CustomAlert message={alertMessage} onClose={() => setAlertMessage(null)} />
+        )}
         <div className={styles.setupContainer}>
-          <h1 className={styles.title}>🎲 Ludo King</h1>
           <p className={styles.setupDescription}>
-            Select number of players and enter names to begin!
+            Select the number of players (2-4) and enter names to begin!
           </p>
 
           <div className={styles.playerCountSection}>
@@ -401,32 +816,38 @@ function Ludo() {
             </div>
           </div>
 
-          <div className={styles.playerNamesSection}>
-            {playerNames.map((name, index) => (
-              <div key={index} className={styles.playerNameRow}>
-                <span className={styles.colorLabel}>{getColorLabel(index)}</span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                  placeholder={`Player ${index + 1}`}
-                  className={styles.nameInput}
-                />
-              </div>
-            ))}
-          </div>
+          <PlayerNameInput
+            players={playerNames}
+            onPlayerChange={handlePlayerNameChange}
+            minPlayers={2}
+            showSymbols={true}
+            symbols={colorSymbols}
+          />
 
-          <button onClick={startGame} className={styles.startButton}>
-            Start Game
-          </button>
+          <div className={styles.setupButtons}>
+            <button onClick={startGame} className={styles.startButton}>
+              Start Game
+            </button>
+          </div>
         </div>
-      </div>
+      </GameLayout>
     );
   }
 
   // Game Screen
   return (
-    <div className={styles.gamePage}>
+    <GameLayout title="🎲 Ludo King" onBack={resetGame}>
+      {alertMessage && (
+        <CustomAlert message={alertMessage} onClose={() => setAlertMessage(null)} />
+      )}
+      
+      {isOnlineMode && (
+        <div className={styles.onlineIndicator}>
+          🌐 Online | Room: {roomCode} | 
+          {myPlayerIndex === currentPlayerIndex ? " Your turn!" : ` ${playerNames[currentPlayerIndex]}'s turn`}
+        </div>
+      )}
+      
       <LudoBoard
         tokens={tokens}
         activeColors={activeColors}
@@ -439,7 +860,7 @@ function Ludo() {
           }
         }}
         diceValue={diceValue}
-        canRoll={canRoll}
+        canRoll={canRoll && (!isOnlineMode || myPlayerIndex === currentPlayerIndex)}
         onRollDice={rollDice}
         playerNames={playerNames}
       />
@@ -457,16 +878,15 @@ function Ludo() {
                 </li>
               ))}
             </ol>
-            <button 
-              onClick={resetGame} 
-              className={styles.startButton}
-            >
-              🔄 Play Again
-            </button>
+            {(!isOnlineMode || isHost) && (
+              <button onClick={resetGame} className={styles.startButton}>
+                🔄 Play Again
+              </button>
+            )}
           </div>
         </div>
       )}
-    </div>
+    </GameLayout>
   );
 }
 
