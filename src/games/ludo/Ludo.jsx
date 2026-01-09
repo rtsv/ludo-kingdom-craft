@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import LudoBoard from "./LudoBoard";
 import styles from "./Ludo.module.css";
 
@@ -35,16 +35,18 @@ function Ludo() {
   const [tokens, setTokens] = useState({});
   const [winner, setWinner] = useState(null);
   const [movableTokens, setMovableTokens] = useState([]);
+  const [playerRankings, setPlayerRankings] = useState([]);
+  const [gameOver, setGameOver] = useState(false);
 
   // Get active colors based on number of players
   // 2 players: Blue vs Green (diagonal opposites like Ludo King)
   // 3 players: Blue, Red, Green
   // 4 players: All four colors
-  const getActiveColors = () => {
+  const getActiveColors = useCallback(() => {
     if (numPlayers === 2) return ["blue", "green"];
     if (numPlayers === 3) return ["blue", "red", "green"];
     return ["blue", "red", "green", "yellow"];
-  };
+  }, [numPlayers]);
 
   const activeColors = getActiveColors();
   const currentColor = activeColors[currentPlayerIndex];
@@ -66,7 +68,7 @@ function Ludo() {
       
       setTokens(initialTokens);
     }
-  }, [gameStarted, numPlayers]);
+  }, [gameStarted, getActiveColors]);
 
   function handlePlayerCountChange(count) {
     setNumPlayers(count);
@@ -92,6 +94,8 @@ function Ludo() {
     setWinner(null);
     setDiceValue(null);
     setCanRoll(true);
+    setPlayerRankings([]);
+    setGameOver(false);
   }
 
   // Calculate absolute position on main path for a token
@@ -106,33 +110,21 @@ function Ludo() {
     return SAFE_POSITIONS.includes(absolutePosition);
   }
 
-  // Check if token can enter home stretch
-  function canEnterHomeStretch(color, currentRelativePos, steps) {
-    const homeEntry = HOME_ENTRY[color];
-    const startPos = START_POSITIONS[color];
-    
-    // Calculate how many steps until home entry
-    let stepsToHomeEntry;
-    if (startPos <= homeEntry) {
-      stepsToHomeEntry = homeEntry - startPos - currentRelativePos;
-    } else {
-      stepsToHomeEntry = (MAIN_PATH_LENGTH - startPos + homeEntry) - currentRelativePos;
-    }
-    
-    // If steps exactly reach or pass home entry, can enter home stretch
-    return steps >= stepsToHomeEntry && currentRelativePos < MAIN_PATH_LENGTH;
-  }
-
   function rollDice() {
-    if (!canRoll || winner) return;
+    if (!canRoll || winner || gameOver) return;
 
     const roll = Math.floor(Math.random() * 6) + 1;
     setDiceValue(roll);
     setCanRoll(false);
 
     const playerTokens = tokens[currentColor];
-    if (!playerTokens) {
-      nextTurn(false);
+    
+    // Check if current player has already finished all tokens
+    const hasFinished = playerTokens && playerTokens.every(t => t.isFinished);
+    if (!playerTokens || hasFinished) {
+      setTimeout(() => {
+        nextTurn();
+      }, 1000);
       return;
     }
 
@@ -155,19 +147,13 @@ function Ludo() {
           const homeStretchPos = currentPos - MAIN_PATH_LENGTH;
           const newHomeStretchPos = homeStretchPos + roll;
           // Can only move if exact or less than finish
-          if (newHomeStretchPos <= 6) {
+          if (newHomeStretchPos <= 5) {
             movable.push(idx);
           }
         } else {
           // On main path - check if move is valid
-          const newPos = currentPos + roll;
-          
-          // Calculate if entering home stretch
-          const startPos = START_POSITIONS[currentColor];
-          const homeEntry = HOME_ENTRY[currentColor];
-          
-          // Calculate absolute positions
           const currentAbsolute = getAbsolutePosition(currentColor, currentPos);
+          const homeEntry = HOME_ENTRY[currentColor];
           
           // Check if path would cross into home stretch
           let stepsToHomeEntry;
@@ -177,7 +163,7 @@ function Ludo() {
             stepsToHomeEntry = MAIN_PATH_LENGTH - currentAbsolute + homeEntry;
           }
           
-          if (currentPos + roll > MAIN_PATH_LENGTH - 1 + 6) {
+          if (currentPos + roll > MAIN_PATH_LENGTH - 1 + 5) {
             // Would overshoot finish - can't move
           } else {
             // Valid move
@@ -191,7 +177,7 @@ function Ludo() {
 
     if (movable.length === 0) {
       setTimeout(() => {
-        nextTurn(false);
+        nextTurn();
       }, 1500);
     } else if (movable.length === 1) {
       setTimeout(() => {
@@ -207,6 +193,7 @@ function Ludo() {
     const token = newTokens[currentColor][tokenIndex];
     
     let capturedOpponent = false;
+    let tokenFinished = false;
 
     if (token.isHome && steps === 6) {
       // Move out of home to starting position (position 0 relative to this color)
@@ -226,28 +213,45 @@ function Ludo() {
         const homeStretchPos = currentPos - MAIN_PATH_LENGTH;
         const newHomeStretchPos = homeStretchPos + steps;
         
-        if (newHomeStretchPos >= 6) {
+        if (newHomeStretchPos >= 5) {
           // Reached home!
-          token.position = MAIN_PATH_LENGTH + 6;
+          token.position = MAIN_PATH_LENGTH + 5;
           token.isFinished = true;
+          tokenFinished = true;
         } else {
           token.position = MAIN_PATH_LENGTH + newHomeStretchPos;
         }
       } else {
-        // On main path
-        const startPos = START_POSITIONS[currentColor];
+        // On main path - need to check if entering home stretch
+        const homeEntry = HOME_ENTRY[currentColor];
         
-        // Calculate steps traveled around the board
-        // A token enters home stretch after completing ~51 steps (full circle minus 1)
-        const totalSteps = currentPos + steps;
+        // Calculate absolute positions for current and new positions
+        const currentAbsolutePos = getAbsolutePosition(currentColor, currentPos);
         
-        if (totalSteps >= MAIN_PATH_LENGTH) {
-          // Entering home stretch
-          const homeStretchPos = totalSteps - MAIN_PATH_LENGTH;
-          if (homeStretchPos >= 6) {
-            // Exactly reached home
-            token.position = MAIN_PATH_LENGTH + 6;
+        // Check if the token will cross or land on its home entry point
+        let willEnterHomeStretch = false;
+        let stepsAfterHomeEntry = 0;
+        
+        for (let step = 1; step <= steps; step++) {
+          const testPos = currentPos + step;
+          const testAbsolutePos = getAbsolutePosition(currentColor, testPos);
+          
+          // Check if we've reached the home entry position
+          if (testAbsolutePos === homeEntry) {
+            willEnterHomeStretch = true;
+            stepsAfterHomeEntry = steps - step;
+            break;
+          }
+        }
+        
+        if (willEnterHomeStretch && stepsAfterHomeEntry >= 0) {
+          // Token enters home stretch
+          const homeStretchPos = stepsAfterHomeEntry;
+          if (homeStretchPos >= 5) {
+            // Exactly reached or passed home
+            token.position = MAIN_PATH_LENGTH + 5;
             token.isFinished = true;
+            tokenFinished = true;
           } else {
             token.position = MAIN_PATH_LENGTH + homeStretchPos;
           }
@@ -273,14 +277,37 @@ function Ludo() {
     // Check for winner
     const allFinished = newTokens[currentColor].every(t => t.isFinished);
     if (allFinished) {
-      setWinner(playerNames[currentPlayerIndex]);
+      const newRankings = [...playerRankings, playerNames[currentPlayerIndex]];
+      setPlayerRankings(newRankings);
+
+      if (newRankings.length === activeColors.length - 1) {
+        // Game over when only one player remains
+        const remainingPlayerIndex = activeColors.findIndex(
+          (_, index) => !newRankings.includes(playerNames[index])
+        );
+        const finalRankings = [...newRankings, playerNames[remainingPlayerIndex]];
+        setPlayerRankings(finalRankings);
+        setGameOver(true);
+        return;
+      }
+
+      nextTurn();
       return;
     }
 
-    // Extra turn for rolling 6 or capturing
-    const extraTurn = steps === 6 || capturedOpponent;
+    // Player gets another turn if:
+    // 1. They rolled a 6, OR
+    // 2. A token just finished (reached home), OR
+    // 3. They captured an opponent
+    // Otherwise, pass turn to next player
     setTimeout(() => {
-      nextTurn(!extraTurn);
+      if (steps === 6 || tokenFinished || capturedOpponent) {
+        // Player gets another turn
+        setDiceValue(null);
+        setCanRoll(true);
+      } else {
+        nextTurn();
+      }
     }, 300);
   }
 
@@ -315,11 +342,9 @@ function Ludo() {
     return captured;
   }
 
-  function nextTurn(passTurn) {
-    if (passTurn) {
-      const nextIdx = (currentPlayerIndex + 1) % activeColors.length;
-      setCurrentPlayerIndex(nextIdx);
-    }
+  function nextTurn() {
+    const nextIdx = (currentPlayerIndex + 1) % activeColors.length;
+    setCurrentPlayerIndex(nextIdx);
     setDiceValue(null);
     setCanRoll(true);
     setMovableTokens([]);
@@ -335,20 +360,31 @@ function Ludo() {
     setTokens({});
     setWinner(null);
     setMovableTokens([]);
+    setPlayerRankings([]);
+    setGameOver(false);
   }
 
-  // Setup Screen
+  // Player Setup Screen
   if (!gameStarted) {
+    // Color labels for display
+    const getColorLabel = (index) => {
+      const colors = getActiveColors();
+      const colorMap = {
+        blue: '🔵 Blue',
+        red: '🔴 Red',
+        green: '🟢 Green',
+        yellow: '🟡 Yellow'
+      };
+      return colorMap[colors[index]] || `Player ${index + 1}`;
+    };
+
     return (
       <div className={styles.setupPage}>
         <div className={styles.setupContainer}>
-          <h1 className={styles.setupTitle}>🎲 Ludo King</h1>
-          <p className={styles.setupSubtitle}>Classic board game for 2-4 players</p>
-          
-          <div className={styles.rulesBox}>
-            <strong>Quick Rules: </strong>
-            <span>Roll 6 to start • Land on opponents to capture • Stars are safe • Get all 4 tokens home to win!</span>
-          </div>
+          <h1 className={styles.title}>🎲 Ludo King</h1>
+          <p className={styles.setupDescription}>
+            Select number of players and enter names to begin!
+          </p>
 
           <div className={styles.playerCountSection}>
             <label className={styles.label}>Number of Players</label>
@@ -357,7 +393,7 @@ function Ludo() {
                 <button
                   key={count}
                   onClick={() => handlePlayerCountChange(count)}
-                  className={`${styles.btn} ${numPlayers === count ? styles.btnActive : styles.btnSecondary}`}
+                  className={`${styles.countButton} ${numPlayers === count ? styles.countButtonActive : ''}`}
                 >
                   {count} Players
                 </button>
@@ -365,47 +401,24 @@ function Ludo() {
             </div>
           </div>
 
-          <div className={styles.playersSection}>
-            <label className={styles.label}>Player Names</label>
-            <div className={styles.playersInputs}>
-              {Array.from({ length: numPlayers }).map((_, index) => {
-                const colors = getActiveColors();
-                const color = colors[index];
-                const colorMap = {
-                  blue: '#2196F3',
-                  red: '#F44336',
-                  yellow: '#FFEB3B',
-                  green: '#4CAF50'
-                };
-                
-                return (
-                  <div key={index} className={styles.playerInputRow}>
-                    <span 
-                      className={styles.colorDot} 
-                      style={{ backgroundColor: colorMap[color] }}
-                    />
-                    <label className={styles.playerLabel}>
-                      {color.charAt(0).toUpperCase() + color.slice(1)}:
-                    </label>
-                    <input
-                      type="text"
-                      value={playerNames[index] || ""}
-                      onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                      placeholder={`Player ${index + 1}`}
-                      className={styles.input}
-                      maxLength={12}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+          <div className={styles.playerNamesSection}>
+            {playerNames.map((name, index) => (
+              <div key={index} className={styles.playerNameRow}>
+                <span className={styles.colorLabel}>{getColorLabel(index)}</span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => handlePlayerNameChange(index, e.target.value)}
+                  placeholder={`Player ${index + 1}`}
+                  className={styles.nameInput}
+                />
+              </div>
+            ))}
           </div>
 
-          <div className={styles.startBtnWrapper}>
-            <button onClick={startGame} className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLarge}`}>
-              🎮 Start Game
-            </button>
-          </div>
+          <button onClick={startGame} className={styles.startButton}>
+            Start Game
+          </button>
         </div>
       </div>
     );
@@ -421,7 +434,7 @@ function Ludo() {
         currentColor={currentColor}
         movableTokens={movableTokens}
         onTokenClick={(tokenIndex) => {
-          if (movableTokens.includes(tokenIndex) && !winner) {
+          if (movableTokens.includes(tokenIndex) && !winner && !gameOver) {
             moveToken(tokenIndex);
           }
         }}
@@ -432,14 +445,21 @@ function Ludo() {
       />
 
       {/* Winner Modal */}
-      {winner && (
+      {gameOver && (
         <div className={styles.winnerOverlay}>
           <div className={styles.winnerCard}>
-            <div className={styles.winnerText}>🎉 {winner} Wins! 🎉</div>
-            <p className={styles.winnerSubtext}>All tokens reached home!</p>
+            <div className={styles.winnerText}>🏆 Game Over! 🏆</div>
+            <p className={styles.winnerSubtext}>Final Rankings:</p>
+            <ol className={styles.rankingsList}>
+              {playerRankings.map((player, index) => (
+                <li key={index} className={styles.rankingsItem}>
+                  {index + 1}. {player}
+                </li>
+              ))}
+            </ol>
             <button 
               onClick={resetGame} 
-              className={`${styles.btn} ${styles.btnPrimary} ${styles.btnLarge}`}
+              className={styles.startButton}
             >
               🔄 Play Again
             </button>
