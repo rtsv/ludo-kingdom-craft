@@ -56,14 +56,11 @@ function NumberRecallTiles({ onBack }) {
   // Multiplayer states
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   
-  // Preview state (show numbers at start)
-  const [isPreview, setIsPreview] = useState(false);
-  
   const settings = DIFFICULTY_SETTINGS[difficulty];
   
-  // Initialize game
+  // Initialize game - tile positions stay fixed for entire game
   const initializeGame = useCallback(() => {
-    // Create tile positions: shuffle numbers 1-9
+    // Create tile positions: shuffle numbers 1-9 (stays same for whole game)
     const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
     const shuffledPositions = shuffleArray(numbers);
     setTilePositions(shuffledPositions);
@@ -85,12 +82,6 @@ function NumberRecallTiles({ onBack }) {
     setIsResetting(false);
     setGameOver(false);
     setWinner(null);
-    
-    // Show preview briefly
-    setIsPreview(true);
-    setTimeout(() => {
-      setIsPreview(false);
-    }, 2000);
   }, [settings.useRandomSequence]);
   
   // Start the game
@@ -106,22 +97,15 @@ function NumberRecallTiles({ onBack }) {
   
   // Handle tile click
   const handleTileClick = (gridIndex) => {
-    if (isResetting || isPreview || gameOver) return;
+    if (isResetting || gameOver) return;
     
     const clickedNumber = tilePositions[gridIndex];
     const expectedNumber = requiredSequence[currentExpectedIndex];
     
     if (clickedNumber === expectedNumber) {
-      // Correct click!
+      // Correct click! Mark tile as found
       setCorrectTile(gridIndex);
-      
-      // Reveal the tile based on difficulty
-      if (settings.revealDuration > 0) {
-        setRevealedTiles(prev => [...prev, gridIndex]);
-        setTimeout(() => {
-          setRevealedTiles(prev => prev.filter(i => i !== gridIndex));
-        }, settings.revealDuration);
-      }
+      setRevealedTiles(prev => [...prev, gridIndex]); // Keep found tiles visible
       
       setTimeout(() => setCorrectTile(null), 300);
       
@@ -129,7 +113,6 @@ function NumberRecallTiles({ onBack }) {
       
       if (nextIndex >= 9) {
         // Player completed the sequence - they win!
-        setRevealedTiles([0, 1, 2, 3, 4, 5, 6, 7, 8]); // Reveal all
         setWinner(currentPlayerIndex);
         setGameOver(true);
       } else {
@@ -147,25 +130,11 @@ function NumberRecallTiles({ onBack }) {
         const nextPlayer = (currentPlayerIndex + 1) % playerCount;
         setCurrentPlayerIndex(nextPlayer);
         
-        // Reset for next player's turn
+        // Reset progress for next player's turn (but keep same tile positions!)
         setRevealedTiles([]);
         setCurrentExpectedIndex(0);
         
-        // Shuffle tile positions for fairness
-        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-        setTilePositions(shuffleArray(numbers));
-        
-        // Generate new random sequence for hard mode
-        if (settings.useRandomSequence) {
-          setRequiredSequence(shuffleArray(numbers));
-        }
-        
-        // Brief preview for new player
-        setIsPreview(true);
-        setTimeout(() => {
-          setIsPreview(false);
-          setIsResetting(false);
-        }, 2000);
+        setIsResetting(false);
       }, 800);
     }
   };
@@ -365,12 +334,10 @@ function NumberRecallTiles({ onBack }) {
         
         {/* Status Bar */}
         <div className={styles.statusBar}>
-          <div className={`${styles.statusText} ${isPreview ? styles.highlight : ''}`}>
-            {isPreview 
-              ? '👀 Memorize the positions!'
-              : isResetting
-                ? 'Wrong! Switching turns...'
-                : `🎯 Find: ${requiredSequence[currentExpectedIndex]} (${currentExpectedIndex + 1}/9)`
+          <div className={styles.statusText}>
+            {isResetting
+              ? 'Wrong! Switching turns...'
+              : `🎯 Find: ${requiredSequence[currentExpectedIndex]} (${currentExpectedIndex + 1}/9)`
             }
           </div>
         </div>
@@ -382,7 +349,7 @@ function NumberRecallTiles({ onBack }) {
               const isRevealed = revealedTiles.includes(gridIndex);
               const isWrong = wrongTile === gridIndex;
               const isCorrect = correctTile === gridIndex;
-              const isPreviewTile = isPreview;
+              const isAlreadyFound = isRevealed && !isCorrect;
               
               return (
                 <button
@@ -392,13 +359,13 @@ function NumberRecallTiles({ onBack }) {
                     ${isRevealed ? styles.revealed : ''}
                     ${isWrong ? styles.wrong : ''}
                     ${isCorrect ? styles.correct : ''}
-                    ${isPreviewTile ? styles.preview : ''}
-                    ${isResetting || isPreview ? styles.disabled : ''}
+                    ${isAlreadyFound ? styles.found : ''}
+                    ${isResetting ? styles.disabled : ''}
                   `}
                   onClick={() => handleTileClick(gridIndex)}
-                  disabled={isResetting || isPreview || gameOver}
+                  disabled={isResetting || gameOver || isRevealed}
                 >
-                  {(isRevealed || isWrong || isCorrect || isPreviewTile) ? number : '?'}
+                  {isRevealed ? number : '?'}
                 </button>
               );
             })}

@@ -374,6 +374,11 @@
   box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
 }
 
+.tile.found {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
 .tile.correct {
   animation: correctPulse 0.4s ease;
   background: linear-gradient(145deg, #43A047, #2E7D32);
@@ -388,12 +393,6 @@
   color: #fff !important;
   border-color: #EF5350 !important;
   box-shadow: 0 0 20px rgba(244, 67, 54, 0.7);
-}
-
-.tile.preview {
-  color: #fff;
-  background: linear-gradient(145deg, #5C6BC0, #3949AB);
-  border-color: #7986CB;
 }
 
 @keyframes correctPulse {
