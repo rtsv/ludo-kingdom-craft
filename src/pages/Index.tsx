@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Ludo from "../games/ludo/Ludo";
 import SequenceRecall from "../games/sequence-recall/SequenceRecall";
+import NumberRecallTiles from "../games/number-recall-tiles/NumberRecallTiles";
 
-type GameType = 'menu' | 'ludo' | 'sequence-recall';
+type GameType = 'menu' | 'ludo' | 'sequence-recall' | 'number-recall-tiles';
 
 const Index = () => {
   const [currentGame, setCurrentGame] = useState<GameType>('menu');
@@ -13,6 +14,10 @@ const Index = () => {
 
   if (currentGame === 'sequence-recall') {
     return <SequenceRecall onBack={() => setCurrentGame('menu')} />;
+  }
+
+  if (currentGame === 'number-recall-tiles') {
+    return <NumberRecallTiles onBack={() => setCurrentGame('menu')} />;
   }
 
   // Game Selection Menu
@@ -41,6 +46,15 @@ const Index = () => {
             <div className="text-3xl mb-2">🧠</div>
             <div className="text-xl font-bold text-white">Sequence Recall</div>
             <div className="text-sm text-white/70 mt-1">Memory game • 1-2 Players</div>
+          </button>
+
+          <button
+            onClick={() => setCurrentGame('number-recall-tiles')}
+            className="w-full p-6 bg-gradient-to-r from-blue-600 to-cyan-700 hover:from-blue-500 hover:to-cyan-600 rounded-2xl border-4 border-yellow-400/50 hover:border-yellow-400 transition-all duration-200 transform hover:scale-[1.02] shadow-xl"
+          >
+            <div className="text-3xl mb-2">🔢</div>
+            <div className="text-xl font-bold text-white">Number Recall Tiles</div>
+            <div className="text-sm text-white/70 mt-1">Memory tiles • 2-4 Players</div>
           </button>
         </div>
       </div>
