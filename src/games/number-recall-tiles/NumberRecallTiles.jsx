@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import GameModeSelector from "../../components/game/GameModeSelector";
+import { playCorrectSound, playWrongSound, playWinSound } from "../../hooks/useGameSounds";
 import styles from "./NumberRecallTiles.module.css";
 
 // Difficulty settings
@@ -104,6 +105,7 @@ function NumberRecallTiles({ onBack }) {
     
     if (clickedNumber === expectedNumber) {
       // Correct click! Mark tile as found
+      playCorrectSound();
       setCorrectTile(gridIndex);
       setRevealedTiles(prev => [...prev, gridIndex]); // Keep found tiles visible
       
@@ -113,6 +115,7 @@ function NumberRecallTiles({ onBack }) {
       
       if (nextIndex >= 9) {
         // Player completed the sequence - they win!
+        playWinSound();
         setWinner(currentPlayerIndex);
         setGameOver(true);
       } else {
@@ -120,6 +123,7 @@ function NumberRecallTiles({ onBack }) {
       }
     } else {
       // Wrong click - end turn
+      playWrongSound();
       setWrongTile(gridIndex);
       setIsResetting(true);
       
